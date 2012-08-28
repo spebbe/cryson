@@ -8,3 +8,5 @@ derby.log
 /server/cryson_test/
 /client/Build
 /client/Documentation
+examples/SimpleCrysonDiary/src/main/objective-j/Frameworks
+examples/SimpleCrysonDiary/simple_cryson_diary
