@@ -4,6 +4,7 @@ derby.log
 .xCodeSupport
 .DS_Store
 .idea
+*.iml
 /server/cryson_test/
 /client/Build
 /client/Documentation
