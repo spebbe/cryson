@@ -1,0 +1,9 @@
+*~
+target
+derby.log
+.xCodeSupport
+.DS_Store
+.idea
+/server/cryson_test/
+/client/Build
+/client/Documentation
