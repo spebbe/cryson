@@ -23,6 +23,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import se.sperber.cryson.listener.ListenerNotificationBatch;
 import se.sperber.cryson.repository.CrysonRepository;
+import se.sperber.cryson.security.Restrictable;
 import se.sperber.cryson.serialization.CrysonSerializer;
 import org.hibernate.SessionFactory;
 import org.hibernate.annotations.Type;
@@ -188,6 +189,11 @@ public class CrysonService {
 
     for(JsonElement updatedEntityElement : updatedEntities) {
       Object entity = crysonSerializer.deserialize(updatedEntityElement, entityClass(updatedEntityElement), replacedTemporaryIds);
+      if (entity instanceof Restrictable) {
+        Object originalEntity = crysonRepository.ensureReadableAndWritable(qualifiedEntityClassName(updatedEntityElement.getAsJsonObject().get("crysonEntityClass").getAsString()),
+                updatedEntityElement.getAsJsonObject().get("id").getAsLong());
+        sessionFactory.getCurrentSession().evict(originalEntity);
+      }
       crysonRepository.update(entity);
       listenerNotificationBatch.entityUpdated(entity);
     }

@@ -18,7 +18,6 @@
 
 package se.sperber.cryson.repository;
 
-import se.sperber.cryson.exception.CrysonValidationFailedException;
 import org.hibernate.Criteria;
 import org.hibernate.FetchMode;
 import org.hibernate.SessionFactory;
@@ -29,8 +28,9 @@ import org.hibernate.transform.DistinctRootEntityResultTransformer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PostFilter;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Repository;
+import se.sperber.cryson.exception.CrysonValidationFailedException;
+import se.sperber.cryson.security.Restrictable;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
@@ -97,29 +97,46 @@ public class CrysonRepository {
     return criteria.list();
   }
 
-  @PreAuthorize("hasPermission(#entity, 'write')")
+  @PostAuthorize("hasPermission(#entity, 'write')")
   public void persist(Object entity) {
     throwConstraintViolations(validatorFactory.getValidator().validate(entity));
     sessionFactory.getCurrentSession().save(entity);
     sessionFactory.getCurrentSession().flush();
+    if (entity instanceof Restrictable) {
+      sessionFactory.getCurrentSession().refresh(entity);
+    }
   }
 
-  @PreAuthorize("hasPermission(#entity, 'write')")
+  @PostAuthorize("hasPermission(#entity, 'read')")
   public void refresh(Object entity) {
     sessionFactory.getCurrentSession().refresh(entity);
   }
 
-  @PreAuthorize("hasPermission(#entity, 'write')")
+  @PostAuthorize("hasPermission(#entity, 'write')")
   public void update(Object entity) {
     throwConstraintViolations(validatorFactory.getValidator().validate(entity));
     sessionFactory.getCurrentSession().update(entity);
+    if (entity instanceof Restrictable) {
+      sessionFactory.getCurrentSession().flush();
+      sessionFactory.getCurrentSession().refresh(entity);
+    }
   }
 
-  @PreAuthorize("hasPermission(#entity, 'write')")
+  @PostAuthorize("hasPermission(#entity, 'write')")
   public void delete(Object entity) {
-    sessionFactory.getCurrentSession().delete(entity);
+    sessionFactory.getCurrentSession().delete(entity); // TODO: Authorization will be performed with placeholder associations...
   }
 
+  @PostAuthorize("hasPermission(returnObject, 'read') and hasPermission(returnObject, 'write')")
+  public Object ensureReadableAndWritable(String entityClassName, long id) {
+    Criteria criteria = sessionFactory.getCurrentSession()
+            .createCriteria(entityClassName)
+            .add(Restrictions.eq("id", id))
+            .setResultTransformer(DistinctRootEntityResultTransformer.INSTANCE)
+            .setCacheable(true);
+
+    return criteria.uniqueResult();
+  }
 
   private void throwConstraintViolations(Set<ConstraintViolation<Object>> constraintViolations) {
     if (constraintViolations.size() > 0) {
