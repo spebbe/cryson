@@ -10,3 +10,5 @@ derby.log
 /client/Documentation
 examples/SimpleCrysonDiary/src/main/objective-j/Frameworks
 examples/SimpleCrysonDiary/simple_cryson_diary
+examples/AdvancedCrysonDiary/src/main/objective-j/Frameworks
+examples/AdvancedCrysonDiary/advanced_cryson_diary

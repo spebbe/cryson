@@ -1,0 +1,26 @@
+How to run!
+-----------
+
+1. Run 'mvn install' in the cryson server directory to install the Cryson
+   server components locally
+
+2. Run 'jake release' in the cryson client directory to compile the Cryson
+   client framework
+
+3. Create the directory 'Frameworks' in src/main/objective-j/
+
+4. Copy or symlink the Cappuccino frameworks Objective-J, Foundation and AppKit
+   from your Cappuccino distribution (>= 0.9.5) to the newly created
+   'Frameworks' directory
+
+5. Copy or symlink the compiled Cryson client framework, located at
+   <cryson directory>/client/Build/Release/Cryson to the newly created
+   'Frameworks' directory
+
+6. Open pom.xml as a project in IntelliJ and run the Main class
+
+7. Point your browser to http://localhost:8080
+
+8. Read and update diaries logged in as either jack/password or jill/password
+
+9. Read other people's diaries logged in as lurker/password. Can't write, though
