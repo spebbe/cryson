@@ -18,10 +18,11 @@
 
 package se.sperber.cryson.hibernate;
 
-import se.sperber.cryson.initialization.Application;
 import org.hibernate.EmptyInterceptor;
 import org.hibernate.Interceptor;
 import org.hibernate.type.Type;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -31,12 +32,15 @@ import java.util.Set;
 
 @Component
 public class CrysonInterceptor extends EmptyInterceptor {
+
+  @Autowired
+  private DefaultListableBeanFactory defaultListableBeanFactory;
   
   Set<Interceptor> interceptors;
   
   @PostConstruct
   public void findInterceptors() {
-    interceptors = new HashSet<Interceptor>(Application.getAll(Interceptor.class));
+    interceptors = new HashSet<Interceptor>(defaultListableBeanFactory.getBeansOfType(Interceptor.class).values());
     interceptors.remove(this);
   }
 

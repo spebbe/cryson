@@ -18,19 +18,19 @@
 
 package se.sperber.cryson.service;
 
-import se.sperber.cryson.exception.CrysonEntityConflictException;
-import se.sperber.cryson.exception.CrysonException;
-import se.sperber.cryson.exception.CrysonValidationFailedException;
-import se.sperber.cryson.initialization.Application;
-import se.sperber.cryson.listener.CrysonListener;
-import se.sperber.cryson.listener.ListenerNotificationBatch;
 import org.apache.log4j.Logger;
 import org.hibernate.OptimisticLockException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.orm.hibernate3.HibernateOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import se.sperber.cryson.exception.CrysonEntityConflictException;
+import se.sperber.cryson.exception.CrysonException;
+import se.sperber.cryson.exception.CrysonValidationFailedException;
+import se.sperber.cryson.listener.CrysonListener;
+import se.sperber.cryson.listener.ListenerNotificationBatch;
 
 import javax.annotation.PostConstruct;
 import javax.ws.rs.*;
@@ -48,6 +48,9 @@ import java.util.*;
 public class CrysonFrontendService {
 
   @Autowired
+  private DefaultListableBeanFactory defaultListableBeanFactory;
+
+  @Autowired
   CrysonService crysonService;
 
   private Set<CrysonListener> crysonListeners;
@@ -56,7 +59,7 @@ public class CrysonFrontendService {
 
   @PostConstruct
   public void findListeners() {
-    crysonListeners = new HashSet<CrysonListener>(Application.getAll(CrysonListener.class));
+    crysonListeners = new HashSet<CrysonListener>(defaultListableBeanFactory.getBeansOfType(CrysonListener.class).values());
   }
   
   @GET
