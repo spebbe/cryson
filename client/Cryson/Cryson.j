@@ -20,6 +20,7 @@
 @import "CrysonSessionFactory.j"
 @import "CrysonDefinitionRepository.j"
 @import "CrysonSession.j"
+@import "CrysonEntityAsyncProxy.j"
 @import "CrysonEntity.j"
 @import "CrysonMapWrapper.j"
 @import "RemoteService.j"

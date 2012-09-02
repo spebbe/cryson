@@ -48,6 +48,7 @@ var NumberTypes = [CPSet setWithObjects:"Long", "long", "Integer", "int", "Float
   JSObject crysonUserTypes;
   CPDictionary cachedDefinition;
   CPString virginJSObject;
+  CrysonEntityAsyncProxy crysonEntityAsyncProxy;
 }
 
 /*!
@@ -408,9 +409,15 @@ var NumberTypes = [CPSet setWithObjects:"Long", "long", "Integer", "int", "Float
     }
 
     if (associationId instanceof Array) {
+      if (crysonEntityAsyncProxy && [crysonEntityAsyncProxy withinAsyncOperation])  {
+        return [crysonEntityAsyncProxy loadAssociation:associationName byClass:associationClass andIds:associationId];
+      }
       crysonAssociations[associationName] = [session findSyncByClass:associationClass andIds:associationId fetch:nil];
     } else {
       if (associationId) {
+        if (crysonEntityAsyncProxy && [crysonEntityAsyncProxy withinAsyncOperation])  {
+          return [crysonEntityAsyncProxy loadAssociation:associationName byClass:associationClass andId:associationId];
+        }
         crysonAssociations[associationName] = [session findSyncByClass:associationClass andId:associationId fetch:nil];
       } else {
         crysonAssociations[associationName] = nil;
@@ -508,6 +515,32 @@ var NumberTypes = [CPSet setWithObjects:"Long", "long", "Integer", "int", "Float
     [self didChangeValueForKey:[self attributeName:attributeName]];
   }
   [self virginize];
+}
+
+- (void)willChangeValueForKey:(CPString)aKey
+{
+  [super willChangeValueForKey:aKey];
+  if (crysonEntityAsyncProxy) {
+    [super willChangeValueForKey:"async"];
+    [crysonEntityAsyncProxy willChangeValueForKey:aKey];
+  }
+}
+
+- (void)didChangeValueForKey:(CPString)aKey
+{
+  [super didChangeValueForKey:aKey];
+  if (crysonEntityAsyncProxy) {
+    [super didChangeValueForKey:"async"];
+    [crysonEntityAsyncProxy didChangeValueForKey:aKey];
+  }
+}
+
+- (CrysonEntityAsyncProxy)async
+{
+  if (!crysonEntityAsyncProxy) {
+    crysonEntityAsyncProxy = [[CrysonEntityAsyncProxy alloc] initWithEntity:self];
+  }
+  return crysonEntityAsyncProxy;
 }
 
 @end

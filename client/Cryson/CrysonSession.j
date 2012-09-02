@@ -256,6 +256,41 @@
 }
 
 /*!
+  Given an entity class and an array of primary keys, search first the session cache and, if necessary, a Cryson server for matching entities. If the entities were found, the following delegate method will be called:
+- - (void)crysonSession:(CrysonSession)aCrysonSession found:(CPArray)someEntities byClass:(CLASS)anEntityClass andIds:(CPArray)someIds
+
+  Note: If the entities were found in the session cache, the delegate method will be called synchronously, otherwise it will be called asynchronously.
+
+  If the entities were not found, the following delegate method will instead be called:
+- - (void)crysonSession:(CrysonSession)aCrysonSession failedToFindByClass:(CLASS)anEntityClass andIds:(CPArray)someIds
+
+  By passing an array of key paths (e.g ["children", "children.toys"]) as the 'associationsToFetch' argument, it is possible to force eager fetching of associations that would otherwise have been lazily fetched.
+  Note: 'associationsToFetch' will only be considered if the entity is fetched from a Cryson server and not already in the session cache.
+*/
+- (void)findByClass:(Class)entityClass andIds:(CPArray)ids fetch:(CPArray)associationsToFetch delegate:(id)aDelegate
+{
+  /* TODO: Check cache, like in the sync version
+  var cachedEntity = [self findCachedByClass:entityClass andId:id];
+  if (cachedEntity) {
+    [aDelegate crysonSession:self found:cachedEntity byClass:entityClass];
+  } else {
+  */
+    [self fetchByClass:entityClass andIds:ids fetch:associationsToFetch delegate:aDelegate];
+    /*
+  }
+    */
+}
+
+/*!
+  Same as CrysonSession#findByClass:andIds:delegate:, but sends callback messages to the default delegate instead of an explicitly specified one.
+@see CrysonSession#findByClass:andIds:fetch:delegate:
+*/
+- (void)findByClass:(Class)entityClass andIds:(CPArray)ids fetch:(CPArray)associationsToFetch
+{
+  [self findByClass:entityClass andIds:ids fetch:associationsToFetch delegate:delegate];
+}
+
+/*!
   Refresh the state of a previously fetched entity, by re-reading it from a Cryson server. If an entity matching the specified class and primary key is not found in the session cache, this method is a no-op.
 
 After a successful refresh, the following delegate method will be called:
@@ -463,6 +498,19 @@ If the commit failed, the following delegate method is instead called:
              context:context];
 }
 
+- (void)fetchByClass:(Class)entityClass andIds:(CPArray)someIds fetch:(CPArray)associationsToFetch delegate:(id)aDelegate
+{
+  var url = baseUrl + "/" + entityClass.name + "/" + [someIds componentsJoinedByString:","] + "?fetch=" + [self _associationNamesToFetchString:associationsToFetch];
+  var context = [CrysonSessionContext contextWithDelegate:aDelegate andEntityClass:entityClass];
+  [context setEntityId:someIds];
+  [self startLoadOperationForDelegate:aDelegate];
+  [remoteService get:url
+            delegate:self
+           onSuccess:@selector(findByClassAndIdsSucceeded:context:)
+             onError:@selector(findByClassAndIdsFailed:context:)
+             context:context];
+}
+
 - (CPString)_associationNamesToFetchString:(CPString)associationsToFetch
 {
   if (associationsToFetch) {
@@ -574,6 +622,26 @@ If the commit failed, the following delegate method is instead called:
   [self finishLoadOperationForDelegate:[context delegate]];
   if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindByClass:andId:)]) {
     [[context delegate] crysonSession:self failedToFindByClass:[context entityClass] andId:[context entityId]];
+  }
+}
+
+- (void)findByClassAndIdsSucceeded:(CPArray)entities context:(CrysonSessionContext)context
+{
+  [self finishLoadOperationForDelegate:[context delegate]];
+  var entityClass = [context entityClass];
+  var entitiesArray = entities;
+  if (!(entities instanceof Array)) {
+    entitiesArray = [entitiesArray];
+  }
+  var materializedEntities = [self materializeEntities:entitiesArray byClass:entityClass];
+  [[context delegate] crysonSession:self found:materializedEntities byClass:entityClass andIds:[context entityId]];
+}
+
+- (void)findByClassAndIdsFailed:(CPString)errorString context:(CrysonSessionContext)context
+{
+  [self finishLoadOperationForDelegate:[context delegate]];
+  if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindByExample:)]) {
+    [[context delegate] crysonSession:self failedToFindByClass:[context entityClass] andIds:[context entityId]];
   }
 }
 
