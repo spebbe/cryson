@@ -409,10 +409,14 @@ var NumberTypes = [CPSet setWithObjects:"Long", "long", "Integer", "int", "Float
     }
 
     if (associationId instanceof Array) {
-      if (crysonEntityAsyncProxy && [crysonEntityAsyncProxy withinAsyncOperation])  {
-        return [crysonEntityAsyncProxy loadAssociation:associationName byClass:associationClass andIds:associationId];
+      if ([associationId count] > 0) {
+        if (crysonEntityAsyncProxy && [crysonEntityAsyncProxy withinAsyncOperation])  {
+          return [crysonEntityAsyncProxy loadAssociation:associationName byClass:associationClass andIds:associationId];
+        }
+        crysonAssociations[associationName] = [session findSyncByClass:associationClass andIds:associationId fetch:nil];
+      } else {
+        crysonAssociations[associationName] = [];
       }
-      crysonAssociations[associationName] = [session findSyncByClass:associationClass andIds:associationId fetch:nil];
     } else {
       if (associationId) {
         if (crysonEntityAsyncProxy && [crysonEntityAsyncProxy withinAsyncOperation])  {
