@@ -75,7 +75,7 @@ var sharedInstance = nil;
 
 - (void)failedToFindDefinitions:(CPString)errorString
 {
-  console.log(errorString); // TODO: boohoo... what to do?
+  CPLog.error(errorString); // TODO: boohoo... what to do?
 }
 
 @end

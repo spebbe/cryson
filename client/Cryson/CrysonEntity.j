@@ -358,7 +358,7 @@ var NumberTypes = [CPSet setWithObjects:"Long", "long", "Integer", "int", "Float
    if (_.isNaN(coercedNumber)) {
      var errorMessage = ("[" +[self className] + " " + attributeName + "]: " + attributeValue + " cannot be safely coerced into number");
      // [CPException raise:CPInvalidArgumentException reason:errorMessage];
-     console.log("WARNING: " + errorMessage);
+     CPLog.warn("WARNING: " + errorMessage);
      return crysonObject[attributeName];
    } else {
      return coercedNumber;
