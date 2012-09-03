@@ -66,7 +66,7 @@
 
 - (CPEnumerator)entityEnumerator
 {
-  return [[CPSet setWithArray:[cachedEntities allValues]] objectEnumerator];
+  return [_.uniq([cachedEntities allValues]) objectEnumerator];
 }
 
 - (CPArray)_hashKeysForEntity:(CrysonEntity)entity

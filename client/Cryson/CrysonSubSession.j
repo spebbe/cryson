@@ -28,7 +28,7 @@
 @implementation CrysonSubSession : CPObject
 {
   CrysonSession crysonSession;
-  CPMutableSet trackedEntities;
+  CPMutableSet trackedEntities; // TODO: Replace! CPSet is really slow.
 }
 
 - (id)initWithSession:(CrysonSession)aCrysonSession

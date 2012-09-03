@@ -46,7 +46,7 @@
   [window setBackgroundColor:[CPColor colorWithCalibratedRed:0.93 green:0.93 blue:0.93 alpha:1.0]];
 
   [entriesArrayController setSortDescriptors:[[CPSortDescriptor sortDescriptorWithKey:@"date" ascending:NO]]];
- }
+}
 
 - (void)crysonSession:(CrysonSession)aSession foundAll:(CPArray)entities byClass:(CLASS)aClass
 {
