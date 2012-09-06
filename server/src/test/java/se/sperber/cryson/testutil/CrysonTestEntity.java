@@ -29,6 +29,10 @@ import java.util.Set;
 
 @Entity
 @Audited
+@NamedQueries({
+        @NamedQuery(name = "CrysonTestEntity.findByName",
+                query = "SELECT e FROM CrysonTestEntity e WHERE e.name = :name")
+})
 public class CrysonTestEntity implements Serializable, Restrictable {
 
   @Id @GeneratedValue

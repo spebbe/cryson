@@ -20,6 +20,7 @@ package se.sperber.cryson.repository;
 
 import org.hibernate.Criteria;
 import org.hibernate.FetchMode;
+import org.hibernate.Query;
 import org.hibernate.SessionFactory;
 import org.hibernate.criterion.Example;
 import org.hibernate.criterion.MatchMode;
@@ -35,6 +36,7 @@ import se.sperber.cryson.security.Restrictable;
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.ValidatorFactory;
+import javax.ws.rs.core.MultivaluedMap;
 import java.util.List;
 import java.util.Set;
 
@@ -95,6 +97,19 @@ public class CrysonRepository {
     setFetchModeForAssociations(criteria, associationsToFetch);
 
     return criteria.list();
+  }
+
+  @PostFilter("hasPermission(filterObject, 'read')")
+  public List<Object> findByNamedQuery(String queryName, MultivaluedMap<String,String> queryParameters) {
+    Query query = sessionFactory.getCurrentSession().getNamedQuery(queryName)
+            .setResultTransformer(DistinctRootEntityResultTransformer.INSTANCE)
+            .setCacheable(true);
+
+    for(String parameterName : queryParameters.keySet()) {
+      query.setParameter(parameterName, queryParameters.getFirst(parameterName));
+    }
+
+    return query.list();
   }
 
   @PostAuthorize("hasPermission(#entity, 'write')")

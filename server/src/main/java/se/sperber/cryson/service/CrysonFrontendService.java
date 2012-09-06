@@ -125,6 +125,16 @@ public class CrysonFrontendService {
     }
   }
 
+  @GET
+  @Path("namedQuery/{query_name}")
+  public Response getEntitiesByNamedQuery(@PathParam("query_name") String queryName, @Context UriInfo uriInfo) {
+    try {
+      return crysonService.getEntitiesByNamedQuery(queryName, uriInfo.getQueryParameters());
+    } catch(Throwable t) {
+      return translateThrowable(t);
+    }
+  }
+
   @PUT
   @Path("{entity_name}")
   public Response createEntity(@Context UriInfo uriInfo, @Context HttpHeaders httpHeaders, @PathParam("entity_name") String entityName, String json) {

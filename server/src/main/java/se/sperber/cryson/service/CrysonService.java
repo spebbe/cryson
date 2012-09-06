@@ -21,10 +21,6 @@ package se.sperber.cryson.service;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import se.sperber.cryson.listener.ListenerNotificationBatch;
-import se.sperber.cryson.repository.CrysonRepository;
-import se.sperber.cryson.security.Restrictable;
-import se.sperber.cryson.serialization.CrysonSerializer;
 import org.hibernate.SessionFactory;
 import org.hibernate.annotations.Type;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,10 +30,15 @@ import org.springframework.context.annotation.ClassPathScanningCandidateComponen
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import se.sperber.cryson.listener.ListenerNotificationBatch;
+import se.sperber.cryson.repository.CrysonRepository;
+import se.sperber.cryson.security.Restrictable;
+import se.sperber.cryson.serialization.CrysonSerializer;
 import se.sperber.cryson.serialization.ReflectionHelper;
 
 import javax.annotation.PostConstruct;
 import javax.persistence.Entity;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import java.lang.reflect.Field;
@@ -147,6 +148,11 @@ public class CrysonService {
   public Response getAllEntities(String entityName, Set<String> associationsToFetch) {
     List<Object> entities = crysonRepository.findAll(qualifiedEntityClassName(entityName), associationsToFetch);
     return Response.ok(crysonSerializer.serialize(entities, associationsToFetch)).build();
+  }
+
+  public Response getEntitiesByNamedQuery(String queryName, MultivaluedMap<String,String> queryParameters) {
+    List<Object> entities = crysonRepository.findByNamedQuery(queryName, queryParameters);
+    return Response.ok(crysonSerializer.serialize(entities)).build();
   }
 
   public Response createEntity(String entityName, String json, ListenerNotificationBatch listenerNotificationBatch) throws Exception {

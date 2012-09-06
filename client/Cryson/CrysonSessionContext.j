@@ -28,6 +28,7 @@
   CPArray persistedEntities @accessors;
   CPString errorMessage @accessors;
   CrysonEntity entityToRefresh @accessors;
+  CPString namedQuery @accessors;
 }
 
 + (CrysonSessionContext)contextWithDelegate:(id)aDelegate andEntityClass:(CLASS)anEntityClass

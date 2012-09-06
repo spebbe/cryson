@@ -196,26 +196,26 @@
   return [rootEntities findByClass:entityClass andId:id];
 }
 
-- (CPArray)materializeEntities:(CPArray)entityJSObjects byClass:entityClass
+- (CPArray)materializeEntities:(CPArray)entityJSObjects
 {
   var entities = [[CPMutableArray alloc] init];
   for(var ix = 0;ix < [entityJSObjects count];ix++) {
     var entityJSObject = [entityJSObjects objectAtIndex:ix];
-    var entity = [self materializeEntity:entityJSObject byClass:entityClass];
+    var entity = [self materializeEntity:entityJSObject];
     [entities addObject:entity];
   }
   return entities;
 }
 
-- (CrysonEntity)materializeEntity:(JSObject)entityJSObject byClass:entityClass
+- (CrysonEntity)materializeEntity:(JSObject)entityJSObject
 {
+  var entityClass = CPClassFromString(entityJSObject.crysonEntityClass);
   var cachedEntity = [self findCachedByClass:entityClass andId:entityJSObject.id];
   if (cachedEntity) {
     return cachedEntity;
   }
 
-  var actualEntityClass = CPClassFromString(entityJSObject.crysonEntityClass);
-  var entity = [[actualEntityClass alloc] initWithJSObject:entityJSObject session:self];
+  var entity = [[entityClass alloc] initWithJSObject:entityJSObject session:self];
   [rootEntities addEntity:entity];
   return entity;
 }
@@ -247,7 +247,7 @@
 }
 
 /*!
-  Same as CrysonSession#findByClass:andId:delegate:, but sends callback messages to the default delegate instead of an explicitly specified one.
+  Same as CrysonSession#findByClass:andId:fetch:delegate:, but sends callback messages to the default delegate instead of an explicitly specified one.
 @see CrysonSession#findByClass:andId:fetch:delegate:
 */
 - (void)findByClass:(Class)entityClass andId:(int)id fetch:(CPArray)associationsToFetch
@@ -282,7 +282,7 @@
 }
 
 /*!
-  Same as CrysonSession#findByClass:andIds:delegate:, but sends callback messages to the default delegate instead of an explicitly specified one.
+  Same as CrysonSession#findByClass:andIds:fetch:delegate:, but sends callback messages to the default delegate instead of an explicitly specified one.
 @see CrysonSession#findByClass:andIds:fetch:delegate:
 */
 - (void)findByClass:(Class)entityClass andIds:(CPArray)ids fetch:(CPArray)associationsToFetch
@@ -310,7 +310,7 @@ By passing an array of key paths (e.g ["children", "children.toys"]) as the 'ass
 }
 
 /*!
-  Same as CrysonSession#refreshByClass:andId:delegate:, but sends callback messages to the default delegate instead of an explicitly specified one.
+  Same as CrysonSession#refreshByClass:andId:fetch:delegate:, but sends callback messages to the default delegate instead of an explicitly specified one.
 @see CrysonSession#refreshByClass:andId:fetch:delegate:
 */
 - (void)refreshByClass:(Class)entityClass andId:(int)id fetch:(CPArray)associationsToFetch
@@ -340,12 +340,49 @@ By passing an array of key paths (e.g ["children", "children.toys"]) as the 'ass
 }
 
 /*!
-  Same as CrysonSession#findAllByClass:delegate:, but sends callback messages to the default delegate instead of an explicitly specified one.
+  Same as CrysonSession#findAllByClass:fetch:delegate:, but sends callback messages to the default delegate instead of an explicitly specified one.
 @see CrysonSession#findAllByClass:fetch:delegate:
 */
 - (void)findAllByClass:(Class)entityClass fetch:(CPArray)associationsToFetch
 {
   [self findAllByClass:entityClass fetch:associationsToFetch delegate:delegate];
+}
+
+/*!
+  Given a named query and parameters, query a Cryson server for all entities matching the parameterized named query. Upon successful completion, the following delegate method will be called:
+- - (void)crysonSession:(CrysonSession)aCrysonSession found:(CPArray)someEntities byNamedQuery:(CPString)aQueryName
+
+  If a problem occurred, the following delegate method will instead be called:
+- - (void)crysonSession:(CrysonSession)aCrysonSession failedToFindByNamedQuery:(CPString)aQueryName
+*/
+- (void)findByNamedQuery:(CPString)queryName withParameters:(CPDictionary)parameters delegate:(id)aDelegate
+{
+  var url = baseUrl + "/namedQuery/" + queryName + "/";
+  var firstParameter = YES;
+  var parameterNames = [parameters allKeys];
+  for (var ix = 0;ix < [parameterNames count];ix++) {
+    url += (firstParameter ? "?" : "&");
+    firstParameter = NO;
+    var parameterName = [parameterNames objectAtIndex:ix];
+    url += parameterName + "=" + encodeURIComponent([parameters objectForKey:parameterName]);
+  }
+  var context = [CrysonSessionContext contextWithDelegate:aDelegate];
+  [context setNamedQuery:queryName];
+  [self startLoadOperationForDelegate:aDelegate];
+  [remoteService get:url
+            delegate:self
+           onSuccess:@selector(findAllByNamedQuerySucceeded:context:)
+             onError:@selector(findAllByNamedQueryFailed:context:)
+             context:context];
+}
+
+/*!
+  Same as CrysonSession#findByNamedQuery:withParameters:delegate:, but sends callback messages to the default delegate instead of an explicitly specified one.
+@see CrysonSession#findByNamedQuery:withParameters:delegate:
+*/
+- (void)findByNamedQuery:(CPString)queryName withParameters:(CPDictionary)parameters
+{
+  [self findByNamedQuery:queryName withParameters:parameters delegate:delegate];
 }
 
 /*!
@@ -372,7 +409,7 @@ By passing an array of key paths (e.g ["children", "children.toys"]) as the 'ass
 }
 
 /*!
-  Same as CrysonSession#findByExample:delegate:, but sends callback messages to the default delegate instead of an explicitly specified one.
+  Same as CrysonSession#findByExample:fetch:delegate:, but sends callback messages to the default delegate instead of an explicitly specified one.
 @see CrysonSession#findByExample:fetch:delegate:
 */
 - (void)findByExample:(CrysonEntity)exampleEntity fetch:(CPArray)associationsToFetch
@@ -581,7 +618,7 @@ If the commit failed, the following delegate method is instead called:
 {
   [self finishLoadOperationForDelegate:[context delegate]];
   var entityClass = [context entityClass];
-  var materializedEntities = [self materializeEntities:entities byClass:entityClass];
+  var materializedEntities = [self materializeEntities:entities];
   [[context delegate] crysonSession:self foundAll:materializedEntities byClass:entityClass];
 }
 
@@ -593,11 +630,27 @@ If the commit failed, the following delegate method is instead called:
   }
 }
 
+- (void)findAllByNamedQuerySucceeded:(JSObject)entities context:(CrysonSessionContext)context
+{
+  [self finishLoadOperationForDelegate:[context delegate]];
+  var namedQuery = [context namedQuery];
+  var materializedEntities = [self materializeEntities:entities];
+  [[context delegate] crysonSession:self found:materializedEntities byNamedQuery:namedQuery];
+}
+
+- (void)findAllByNamedQueryFailed:(CPString)errorString context:(CrysonSessionContext)context
+{
+  [self finishLoadOperationForDelegate:[context delegate]];
+  if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindByNamedQuery:)]) {
+    [[context delegate] crysonSession:self failedToFindByNamedQuery:[context namedQuery]];
+  }
+}
+
 - (void)findAllByExampleSucceeded:(JSObject)entities context:(CrysonSessionContext)context
 {
   [self finishLoadOperationForDelegate:[context delegate]];
   var entityClass = [context entityClass];
-  var materializedEntities = [self materializeEntities:entities byClass:entityClass];
+  var materializedEntities = [self materializeEntities:entities];
   [[context delegate] crysonSession:self found:materializedEntities byExample:[context example]];
 }
 
@@ -613,7 +666,7 @@ If the commit failed, the following delegate method is instead called:
 {
   [self finishLoadOperationForDelegate:[context delegate]];
   var entityClass = [context entityClass];
-  var materializedEntity = [self materializeEntity:entity byClass:entityClass];
+  var materializedEntity = [self materializeEntity:entity];
   [[context delegate] crysonSession:self found:materializedEntity byClass:entityClass];
 }
 
@@ -633,7 +686,7 @@ If the commit failed, the following delegate method is instead called:
   if (!(entities instanceof Array)) {
     entitiesArray = [entitiesArray];
   }
-  var materializedEntities = [self materializeEntities:entitiesArray byClass:entityClass];
+  var materializedEntities = [self materializeEntities:entitiesArray];
   [[context delegate] crysonSession:self found:materializedEntities byClass:entityClass andIds:[context entityId]];
 }
 
@@ -683,7 +736,7 @@ If the commit failed, the following delegate method is instead called:
     [self startLoadOperationForDelegate:delegate];
     var entityJSObject = [RequestHelper syncGet:url];
     [self finishLoadOperationForDelegate:delegate];
-    return [self materializeEntity:entityJSObject byClass:entityClass];
+    return [self materializeEntity:entityJSObject];
   }
 }
 
@@ -720,7 +773,7 @@ If the commit failed, the following delegate method is instead called:
     var entityJSObjects = [RequestHelper syncGet:url];
     [self finishLoadOperationForDelegate:delegate];
     for(var ix = 0;ix < [entityJSObjects count];ix++) {
-      [foundEntities addObject:[self materializeEntity:[entityJSObjects objectAtIndex:ix] byClass:entityClass]];
+      [foundEntities addObject:[self materializeEntity:[entityJSObjects objectAtIndex:ix]]];
     }
   }
 

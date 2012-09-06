@@ -218,4 +218,16 @@ public class CrysonAPITest {
     assertEquals(HttpStatus.SC_OK, httpClient.executeMethod(postMethod));
   }
 
+  @Test
+  public void shouldFindEntitiesByNamedQuery() throws Exception {
+    GetMethod getMethod = new GetMethod("http://localhost:8789/cryson/namedQuery/CrysonTestEntity.findByName?name=updated");
+    int status = httpClient.executeMethod(getMethod);
+    assertEquals(HttpStatus.SC_OK, status);
+
+    JsonElement jsonElement = crysonSerializer.parse(getMethod.getResponseBodyAsString());
+    assertEquals(1, jsonElement.getAsJsonArray().size());
+    CrysonTestEntity testEntity = crysonSerializer.deserialize(jsonElement.getAsJsonArray().get(0), CrysonTestEntity.class, null);
+    assertEquals(foundEntity.getId(), testEntity.getId());
+  }
+
 }
