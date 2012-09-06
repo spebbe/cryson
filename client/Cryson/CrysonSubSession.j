@@ -17,6 +17,7 @@
 */
 
 @import "CrysonEntity.j"
+@import "CrysonMutableEntitySet.j"
 @import "CrysonSession.j"
 
 /*!
@@ -27,8 +28,8 @@
 */
 @implementation CrysonSubSession : CPObject
 {
-  CrysonSession crysonSession;
-  CPMutableSet trackedEntities; // TODO: Replace! CPSet is really slow.
+  CrysonSession                crysonSession;
+  CrysonMutableEntitySet       trackedEntities;
 }
 
 - (id)initWithSession:(CrysonSession)aCrysonSession
@@ -36,7 +37,7 @@
   self = [super init];
   if (self) {
     crysonSession = aCrysonSession;
-    trackedEntities = [[CPMutableSet alloc] init];
+    trackedEntities = [[CrysonMutableEntitySet alloc] init];
   }
   return self;
 }

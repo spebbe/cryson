@@ -18,14 +18,16 @@
 
 @implementation CrysonSessionCache : CPObject
 {
-  CPMutableDictionary cachedEntities;
+  CPMutableDictionary    cachedEntitiesByHashKey;
+  CrysonMutableEntitySet cachedEntities;
 }
 
 - (id)init
 {
   self = [super init];
   if (self) {
-    cachedEntities = [[CPMutableDictionary alloc] init];
+    cachedEntitiesByHashKey = [[CPMutableDictionary alloc] init];
+    cachedEntities = [[CrysonMutableEntitySet alloc] init];
   }
   return self;
 }
@@ -36,8 +38,9 @@
       hashKeysEnumerator = [hashKeys objectEnumerator],
       currentHashKey = nil;
   while(currentHashKey = [hashKeysEnumerator nextObject]) {
-    [cachedEntities setObject:entity forKey:currentHashKey];
+    [cachedEntitiesByHashKey setObject:entity forKey:currentHashKey];
   }
+  [cachedEntities addObject:entity];
 }
 
 - (void)removeEntity:(CrysonEntity)entity
@@ -46,8 +49,9 @@
       hashKeysEnumerator = [hashKeys objectEnumerator],
       currentHashKey = nil;
   while(currentHashKey = [hashKeysEnumerator nextObject]) {
-    [cachedEntities removeObjectForKey:currentHashKey];
+    [cachedEntitiesByHashKey removeObjectForKey:currentHashKey];
   }
+  [cachedEntities removeObject:entity];
 }
 
 - (CrysonEntity)findByClass:(CLASS)klazz andId:(int)id
@@ -56,7 +60,7 @@
       hashKeysEnumerator = [hashKeys objectEnumerator],
       currentHashKey = nil;
   while(currentHashKey = [hashKeysEnumerator nextObject]) {
-    var entity = [cachedEntities objectForKey:currentHashKey];
+    var entity = [cachedEntitiesByHashKey objectForKey:currentHashKey];
     if (entity) {
       return entity;
     }
@@ -66,7 +70,7 @@
 
 - (CPEnumerator)entityEnumerator
 {
-  return [_.uniq([cachedEntities allValues]) objectEnumerator];
+  return [cachedEntities objectEnumerator];
 }
 
 - (CPArray)_hashKeysForEntity:(CrysonEntity)entity

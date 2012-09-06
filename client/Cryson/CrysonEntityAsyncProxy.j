@@ -18,9 +18,9 @@
 
 @implementation CrysonEntityAsyncProxy : CPObject
 {
-  CrysonEntity        entity;
-  BOOL                withinAsyncOperation @accessors;
-  CPMutableSet        loadingAssociations; // TODO: Replace. CPSet is slow.
+  CrysonEntity                  entity;
+  BOOL                          withinAsyncOperation @accessors;
+  CrysonMutableEntitySet        loadingAssociations;
 }
 
 - (id)initWithEntity:(CrysonEntity)anEntity
@@ -28,7 +28,7 @@
   self = [super init];
   if (self) {
     entity = anEntity;
-    loadingAssociations = [[CPMutableSet alloc] init];
+    loadingAssociations = [[CrysonMutableEntitySet alloc] init];
   }
   return self;
 }

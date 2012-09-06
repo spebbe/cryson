@@ -21,7 +21,7 @@ function compareNumbers(a,b){
 }
 
 var ArrayKVCOperationRegexp = /^(countOf(.+))|(objectIn(.+)AtIndex:)|(insertObject:in(.+)AtIndex:)|(removeObjectFrom(.+)AtIndex:)$/;
-var NumberTypes = [CPSet setWithObjects:"Long", "long", "Integer", "int", "Float", "float", "Double", "double"];
+var NumberTypes = [CrysonMutableEntitySet setWithArray:["Long", "long", "Integer", "int", "Float", "float", "Double", "double"]];
 
 // TODO: Time for a cleanup again...:
 //       Extract forwardInvocation stuff from entity and mapwrapper into common base class.
