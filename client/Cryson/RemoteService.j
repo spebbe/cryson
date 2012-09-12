@@ -31,9 +31,9 @@
 {
   if (errorAction) {
     if (callerContext) {
-      [delegate performSelector:errorAction withObject:error withObject:callerContext];
+      [delegate performSelector:errorAction withObjects:error,statusCode,callerContext];
     } else {
-      [delegate performSelector:errorAction withObject:error];
+      [delegate performSelector:errorAction withObjects:error,statusCode];
     }
   }
 }
@@ -54,9 +54,9 @@
   } else {
     if (errorAction) {
       if (callerContext) {
-        [delegate performSelector:errorAction withObject:data withObject:callerContext];
+        [delegate performSelector:errorAction withObjects:data,statusCode,callerContext];
       } else {
-        [delegate performSelector:errorAction withObject:data];
+        [delegate performSelector:errorAction withObjects:data,statusCode];
       }
     }
   }

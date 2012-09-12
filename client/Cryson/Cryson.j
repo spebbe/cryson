@@ -18,6 +18,7 @@
 
 @import "Resources/underscore-min.js"
 @import "CrysonMutableEntitySet.j"
+@import "CrysonError.j"
 @import "CrysonSessionFactory.j"
 @import "CrysonDefinitionRepository.j"
 @import "CrysonSession.j"

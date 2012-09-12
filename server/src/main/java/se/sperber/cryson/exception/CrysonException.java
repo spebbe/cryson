@@ -18,10 +18,20 @@
 
 package se.sperber.cryson.exception;
 
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
+
 public class CrysonException extends RuntimeException {
 
-  public CrysonException(String message) {
-    super(message);
+  public CrysonException(String message, Throwable cause) {
+    super(message, cause);
+  }
+
+  public Map<String, Serializable> getSerializableMessage() {
+    Map<String, Serializable> message = new HashMap<String, Serializable>();
+    message.put("message", getMessage());
+    return message;
   }
 
 }

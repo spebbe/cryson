@@ -78,6 +78,51 @@ if (typeof(_) == 'undefined') {
   [OJAssert assertFalse:[session dirty]];
 }
 
+- (void)testUnclassifiedErrorMessage
+{
+  var session = [self givenCrysonSession];
+  var delegateMock = moq();
+  var error = nil;
+  [delegateMock selector:@selector(crysonSession:commitFailedWithError:) callback:function(args) {
+      error = args[1];
+    }];
+                  
+  [session commitFailed:@"some barf from the server"
+             statusCode:500
+                context:[CrysonSessionContext contextWithDelegate:delegateMock]];
+  
+  [OJAssert assert:@"Unclassified error" equals:[error message]];
+  [OJAssert assert:500 equals:[error statusCode]];
+  [OJAssert assert:0 equals:[[error validationFailures] count]];
+}
+
+- (void)testValidationErrorMessage
+{
+  var session = [self givenCrysonSession];
+  [session setCrysonDefinitionRepository:[self givenCrysonDefinitionRepository]];
+  var delegateMock = moq();
+  var error = nil;
+  [delegateMock selector:@selector(crysonSession:commitFailedWithError:) callback:function(args) {
+      error = args[1];
+    }];
+  var testEntity = [self givenTestEntity];
+  [testEntity setId:1];
+  [testEntity setName:@"test"];
+  [session attach:testEntity];
+                  
+  [session commitFailed:JSON.stringify({"message":"Some validation failed", "validationFailures":[{"message":"validation failed",entityClass:"TestEntity",entityId:1,keyPath:"name"}]})
+             statusCode:403
+                context:[CrysonSessionContext contextWithDelegate:delegateMock]];
+  
+  [OJAssert assert:@"Some validation failed" equals:[error message]];
+  [OJAssert assert:403 equals:[error statusCode]];
+  [OJAssert assert:1 equals:[[error validationFailures] count]];
+  var validationFailure = [[error validationFailures] objectAtIndex:0];
+  [OJAssert assert:testEntity equals:[validationFailure entity]];
+  [OJAssert assert:@"name" equals:[validationFailure keyPath]];
+  [OJAssert assert:@"test" equals:[validationFailure value]];
+  [OJAssert assert:@"validation failed" equals:[validationFailure message]];
+}
 
 @end
 
@@ -109,7 +154,6 @@ if (typeof(_) == 'undefined') {
 
   return [self givenCrysonSessionWithRemoteService:remoteService andDelegate:aDelegate];
 }
-
 
 - (CrysonSession)givenCrysonSessionWithRemoteService:(RemoteService)aRemoteService andDelegate:(id)aDelegate
 {

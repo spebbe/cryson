@@ -20,6 +20,7 @@ package se.sperber.cryson.service;
 
 import org.apache.log4j.Logger;
 import org.hibernate.OptimisticLockException;
+import org.hibernate.StaleObjectStateException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.orm.hibernate3.HibernateOptimisticLockingFailureException;
@@ -31,6 +32,7 @@ import se.sperber.cryson.exception.CrysonException;
 import se.sperber.cryson.exception.CrysonValidationFailedException;
 import se.sperber.cryson.listener.CrysonListener;
 import se.sperber.cryson.listener.ListenerNotificationBatch;
+import se.sperber.cryson.serialization.CrysonSerializer;
 
 import javax.annotation.PostConstruct;
 import javax.ws.rs.*;
@@ -38,6 +40,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
+import java.io.Serializable;
 import java.text.ParseException;
 import java.util.*;
 
@@ -51,7 +54,10 @@ public class CrysonFrontendService {
   private DefaultListableBeanFactory defaultListableBeanFactory;
 
   @Autowired
-  CrysonService crysonService;
+  private CrysonService crysonService;
+
+  @Autowired
+  private CrysonSerializer crysonSerializer;
 
   private Set<CrysonListener> crysonListeners;
 
@@ -183,29 +189,40 @@ public class CrysonFrontendService {
   }
 
   private Response translateCrysonException(CrysonException e) {
+    String serializedMessage = crysonSerializer.serializeWithoutAugmentation(e.getSerializableMessage());
     if (e instanceof CrysonValidationFailedException) {
-      return Response.status(Response.Status.FORBIDDEN).entity(e.getMessage()).build();
+      return Response.status(Response.Status.FORBIDDEN).entity(serializedMessage).build();
     } else if (e instanceof CrysonEntityConflictException) {
-      return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
+      return Response.status(Response.Status.CONFLICT).entity(serializedMessage).build();
     } else {
       e.printStackTrace();
-      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(serializedMessage).build();
     }
   }
   
   private Response translateThrowable(Throwable t) {
     if (t instanceof CrysonException) {
       return translateCrysonException((CrysonException)t);
-    } else if (t instanceof OptimisticLockException || t instanceof HibernateOptimisticLockingFailureException) {
-      return translateCrysonException(new CrysonEntityConflictException("Optimistic locking failed"));
+    } else if (t instanceof OptimisticLockException || t instanceof HibernateOptimisticLockingFailureException || t instanceof StaleObjectStateException) {
+      return translateCrysonException(new CrysonEntityConflictException("Optimistic locking failed", t));
     } else if (t instanceof AccessDeniedException) {
-      return Response.status(Response.Status.UNAUTHORIZED).entity(t.getMessage()).build();
+      return Response.status(Response.Status.UNAUTHORIZED).entity(buildJsonMessage(t.getMessage())).build();
     } else if (t instanceof ParseException) {
-      return Response.status(Response.Status.BAD_REQUEST).entity(t.getMessage()).build();
+      return Response.status(Response.Status.BAD_REQUEST).entity(buildJsonMessage(t.getMessage())).build();
     } else {
       t.printStackTrace();
-      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(t.getMessage()).build();
+      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(buildJsonMessage(t.getMessage())).build();
     }
+  }
+
+  private String buildJsonMessage(String message) {
+    Map<String, Serializable> messageObject = new HashMap<String, Serializable>();
+    if (message == null || message.equals("")) {
+      messageObject.put("message", "Unclassified error");
+    } else {
+      messageObject.put("message", message);
+    }
+    return crysonSerializer.serializeWithoutAugmentation(messageObject);
   }
 
   private Set<String> splitAssociationsToFetch(String rawAssociationsToFetch) {

@@ -2,6 +2,7 @@
 target
 derby.log
 .xCodeSupport
+*.xcodeproj
 .DS_Store
 .idea
 *.iml

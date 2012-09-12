@@ -48,7 +48,7 @@ var sharedInstance = nil;
   [RemoteService get:baseUrl + "/definitions"
             delegate:self
            onSuccess:@selector(foundDefinitions:)
-             onError:@selector(failedToFindDefinitions:)
+             onError:@selector(failedToFindDefinitions:statusCode:)
              context:nil];
 }
 
@@ -73,9 +73,9 @@ var sharedInstance = nil;
   }
 }
 
-- (void)failedToFindDefinitions:(CPString)errorString
+- (void)failedToFindDefinitions:(CPString)errorString statusCode:(CPNumber)statusCode
 {
-  CPLog.error(errorString); // TODO: boohoo... what to do?
+  CPLog.error(errorString, statusCode); // TODO: boohoo... what to do?
 }
 
 @end

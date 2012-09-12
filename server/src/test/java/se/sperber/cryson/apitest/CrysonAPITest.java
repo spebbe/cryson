@@ -196,7 +196,7 @@ public class CrysonAPITest {
     PostMethod postMethod = new PostMethod("http://localhost:8789/cryson/commit");
     postMethod.setRequestEntity(new StringRequestEntity(commitJson, "application/json", "UTF-8"));
     assertEquals(HttpStatus.SC_CONFLICT, httpClient.executeMethod(postMethod));
-    assertEquals("Optimistic locking failed", postMethod.getResponseBodyAsString());
+    assertEquals("{\"message\":\"Optimistic locking failed\"}", postMethod.getResponseBodyAsString());
   }
 
   @Test
@@ -207,7 +207,7 @@ public class CrysonAPITest {
     PostMethod postMethod = new PostMethod("http://localhost:8789/cryson/commit");
     postMethod.setRequestEntity(new StringRequestEntity(commitJson, "application/json", "UTF-8"));
     assertEquals(HttpStatus.SC_FORBIDDEN, httpClient.executeMethod(postMethod));
-    assertEquals("CrysonTestEntity name size must be between 0 and 30\n", postMethod.getResponseBodyAsString());
+    assertEquals("{\"message\":\"CrysonTestEntity name size must be between 0 and 30\\n\",\"validationFailures\":[{\"entityClass\":\"CrysonTestEntity\",\"entityId\":" + entityId + ",\"keyPath\":\"name\",\"message\":\"size must be between 0 and 30\"}]}", postMethod.getResponseBodyAsString());
   }
 
   @Test

@@ -60,9 +60,9 @@
   originalEntries = [entries copy];
 }
 
-- (void)crysonSession:(CrysonSession)aCrysonSession commitFailedWithError:(CPString)errorString
+- (void)crysonSession:(CrysonSession)aCrysonSession commitFailedWithError:(CrysonError)error
 {
-  [[CPAlert alertWithError:@"Could not save: " + errorString] runModal];
+  [[CPAlert alertWithError:@"Could not save: " + [error message]] runModal];
 }
 
 - (void)crysonSessionDidStartLoadOperation:(CrysonSession)aSession

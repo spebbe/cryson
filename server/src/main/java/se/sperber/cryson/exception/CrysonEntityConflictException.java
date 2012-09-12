@@ -20,8 +20,8 @@ package se.sperber.cryson.exception;
 
 public class CrysonEntityConflictException extends CrysonException {
 
-  public CrysonEntityConflictException(String message) {
-    super(message);
+  public CrysonEntityConflictException(String message, Throwable cause) {
+    super(message, cause);
   }
 
 }

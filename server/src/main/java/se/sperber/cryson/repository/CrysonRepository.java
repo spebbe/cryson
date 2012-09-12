@@ -161,7 +161,7 @@ public class CrysonRepository {
         violationMessages.append(constraintViolation.getPropertyPath()).append(" ");
         violationMessages.append(constraintViolation.getMessage()).append("\n");
       }
-      throw new CrysonValidationFailedException(violationMessages.toString());
+      throw new CrysonValidationFailedException(violationMessages.toString(), constraintViolations);
     }
   }
 

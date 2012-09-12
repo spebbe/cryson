@@ -18,10 +18,74 @@
 
 package se.sperber.cryson.exception;
 
+import javax.validation.ConstraintViolation;
+import java.io.Serializable;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.Set;
+
 public class CrysonValidationFailedException extends CrysonException {
 
-  public CrysonValidationFailedException(String message) {
-    super(message);
+  private Set<ConstraintViolation<Object>> constraintViolations;
+
+  public CrysonValidationFailedException(String message, Set<ConstraintViolation<Object>> constraintViolations) {
+    super(message, null);
+    this.constraintViolations = constraintViolations;
+  }
+
+  @Override
+  public Map<String, Serializable> getSerializableMessage() {
+    Map<String, Serializable> result = super.getSerializableMessage();
+    ArrayList<ValidationFailure> validationFailures = new ArrayList<ValidationFailure>();
+    for(ConstraintViolation<Object> constraintViolation : constraintViolations) {
+      validationFailures.add(new ValidationFailure(constraintViolation.getRootBeanClass().getSimpleName(),
+              getPrimaryKey(constraintViolation.getRootBean()),
+              constraintViolation.getPropertyPath().toString(), constraintViolation.getMessage()));
+    }
+    result.put("validationFailures", validationFailures);
+    return result;
+  }
+
+  private Long getPrimaryKey(Object entity) {
+    try {
+      Method method = entity.getClass().getMethod("getId");
+      return (Long)method.invoke(entity);
+    } catch(Throwable t) {
+      try {
+        Field field = null;
+        Class klazz = entity.getClass();
+        while(field == null && klazz != Object.class) {
+          try {
+            field = klazz.getDeclaredField("id");
+          } catch (NoSuchFieldException e) {}
+          klazz = klazz.getSuperclass();
+        }
+        if (field != null) {
+          field.setAccessible(true);
+        }
+        return (Long)field.get(entity);
+      } catch(Throwable t2) {
+        return null;
+      }
+    }
+  }
+
+  private static class ValidationFailure implements Serializable {
+
+    private String entityClass;
+    private Long entityId;
+    private String keyPath;
+    private String message;
+
+    private ValidationFailure(String entityClass, Long entityId, String keyPath, String message) {
+      this.entityClass = entityClass;
+      this.entityId = entityId;
+      this.keyPath = keyPath;
+      this.message = message;
+    }
+
   }
 
 }

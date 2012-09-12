@@ -40,9 +40,9 @@ public class CrysonRepositoryExceptionTranslator {
     if (t instanceof CrysonValidationFailedException) {
       throw t;
     } else if (t instanceof OptimisticLockException || t instanceof HibernateOptimisticLockingFailureException || t instanceof StaleObjectStateException) {
-      throw new CrysonEntityConflictException("Optimistic locking failed");
+      throw new CrysonEntityConflictException("Optimistic locking failed", t);
     } else {
-      throw new CrysonException("Unclassified error: " + t.getMessage());
+      throw new CrysonException("Unclassified error: " + t.getMessage(), t);
     }
   }
 

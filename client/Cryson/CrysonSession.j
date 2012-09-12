@@ -335,7 +335,7 @@ By passing an array of key paths (e.g ["children", "children.toys"]) as the 'ass
   [remoteService get:url
             delegate:self
            onSuccess:@selector(findAllByClassSucceeded:context:)
-             onError:@selector(findAllByClassFailed:context:)
+             onError:@selector(findAllByClassFailed:statusCode:context:)
              context:context];
 }
 
@@ -372,7 +372,7 @@ By passing an array of key paths (e.g ["children", "children.toys"]) as the 'ass
   [remoteService get:url
             delegate:self
            onSuccess:@selector(findAllByNamedQuerySucceeded:context:)
-             onError:@selector(findAllByNamedQueryFailed:context:)
+             onError:@selector(findAllByNamedQueryFailed:statusCode:context:)
              context:context];
 }
 
@@ -404,7 +404,7 @@ By passing an array of key paths (e.g ["children", "children.toys"]) as the 'ass
   [remoteService get:url
             delegate:self
            onSuccess:@selector(findAllByExampleSucceeded:context:)
-             onError:@selector(findAllByExampleFailed:context:)
+             onError:@selector(findAllByExampleFailed:statusCode:context:)
              context:context];
 }
 
@@ -502,7 +502,7 @@ If the commit failed, the following delegate method is instead called:
                      to:url
                delegate:self
               onSuccess:@selector(commitSucceeded:context:)
-                onError:@selector(commitFailed:context:)
+                onError:@selector(commitFailed:statusCode:context:)
                 context:context];
   } else {
     [aDelegate crysonSessionCommitted:self];
@@ -531,7 +531,7 @@ If the commit failed, the following delegate method is instead called:
   [remoteService get:url
             delegate:self
            onSuccess:@selector(findByClassAndIdSucceeded:context:)
-             onError:@selector(findByClassAndIdFailed:context:)
+             onError:@selector(findByClassAndIdFailed:statusCode:context:)
              context:context];
 }
 
@@ -544,7 +544,7 @@ If the commit failed, the following delegate method is instead called:
   [remoteService get:url
             delegate:self
            onSuccess:@selector(findByClassAndIdsSucceeded:context:)
-             onError:@selector(findByClassAndIdsFailed:context:)
+             onError:@selector(findByClassAndIdsFailed:statusCode:context:)
              context:context];
 }
 
@@ -565,7 +565,7 @@ If the commit failed, the following delegate method is instead called:
   [remoteService get:url
             delegate:self
            onSuccess:@selector(refreshSucceeded:context:)
-             onError:@selector(refreshFailed:context:)
+             onError:@selector(refreshFailed:statusCode:context:)
              context:context];
 }
 
@@ -606,11 +606,11 @@ If the commit failed, the following delegate method is instead called:
   }
 }
 
-- (void)commitFailed:(CPString)errorString context:(CrysonSessionContext)context
+- (void)commitFailed:(CPString)errorString statusCode:(CPNumber)statusCode context:(CrysonSessionContext)context
 {
   [self finishLoadOperationForDelegate:[context delegate]];
   if ([[context delegate] respondsToSelector:@selector(crysonSession:commitFailedWithError:)]) {
-    [[context delegate] crysonSession:self commitFailedWithError:errorString];
+    [[context delegate] crysonSession:self commitFailedWithError:[self _buildCrysonErrorWithRawMessage:errorString statusCode:statusCode]];
   }
 }
 
@@ -622,7 +622,7 @@ If the commit failed, the following delegate method is instead called:
   [[context delegate] crysonSession:self foundAll:materializedEntities byClass:entityClass];
 }
 
-- (void)findAllByClassFailed:(CPString)errorString context:(CrysonSessionContext)context
+- (void)findAllByClassFailed:(CPString)errorString statusCode:(CPNumber)statusCode context:(CrysonSessionContext)context
 {
   [self finishLoadOperationForDelegate:[context delegate]];
   if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindAllByClass:)]) {
@@ -638,7 +638,7 @@ If the commit failed, the following delegate method is instead called:
   [[context delegate] crysonSession:self found:materializedEntities byNamedQuery:namedQuery];
 }
 
-- (void)findAllByNamedQueryFailed:(CPString)errorString context:(CrysonSessionContext)context
+- (void)findAllByNamedQueryFailed:(CPString)errorString statusCode:(CPNumber)statusCode context:(CrysonSessionContext)context
 {
   [self finishLoadOperationForDelegate:[context delegate]];
   if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindByNamedQuery:)]) {
@@ -654,7 +654,7 @@ If the commit failed, the following delegate method is instead called:
   [[context delegate] crysonSession:self found:materializedEntities byExample:[context example]];
 }
 
-- (void)findAllByExampleFailed:(CPString)errorString context:(CrysonSessionContext)context
+- (void)findAllByExampleFailed:(CPString)errorString statusCode:(CPNumber)statusCode context:(CrysonSessionContext)context
 {
   [self finishLoadOperationForDelegate:[context delegate]];
   if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindByExample:)]) {
@@ -670,7 +670,7 @@ If the commit failed, the following delegate method is instead called:
   [[context delegate] crysonSession:self found:materializedEntity byClass:entityClass];
 }
 
-- (void)findByClassAndIdFailed:(CPString)errorString context:(CrysonSessionContext)context
+- (void)findByClassAndIdFailed:(CPString)errorString statusCode:(CPNumber)statusCode context:(CrysonSessionContext)context
 {
   [self finishLoadOperationForDelegate:[context delegate]];
   if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindByClass:andId:)]) {
@@ -690,7 +690,7 @@ If the commit failed, the following delegate method is instead called:
   [[context delegate] crysonSession:self found:materializedEntities byClass:entityClass andIds:[context entityId]];
 }
 
-- (void)findByClassAndIdsFailed:(CPString)errorString context:(CrysonSessionContext)context
+- (void)findByClassAndIdsFailed:(CPString)errorString statusCode:(CPNumber)statusCode context:(CrysonSessionContext)context
 {
   [self finishLoadOperationForDelegate:[context delegate]];
   if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindByExample:)]) {
@@ -706,12 +706,41 @@ If the commit failed, the following delegate method is instead called:
   [[context delegate] crysonSession:self refreshed:entity];
 }
 
-- (void)refreshFailed:(CPString)errorString context:(CrysonSessionContext)context
+- (void)refreshFailed:(CPString)errorString statusCode:(CPNumber)statusCode context:(CrysonSessionContext)context
 {
   [self finishLoadOperationForDelegate:[context delegate]];
   if ([[context delegate] respondsToSelector:@selector(crysonSession:refreshFailedWithError:)]) {
-    [[context delegate] crysonSession:self refreshFailedWithError:errorString];
+    [[context delegate] crysonSession:self refreshFailedWithError:[self _buildCrysonErrorWithRawMessage:errorString statusCode:statusCode]];
   }
+}
+
+- (CrysonError)_buildCrysonErrorWithRawMessage:(CPString)aMessage statusCode:(CPNumber)statusCode
+{
+  if ([aMessage hasPrefix:@"{"]) {
+    var jsonMessage = [aMessage objectFromJSON];
+    return [CrysonError errorWithMessage:jsonMessage.message statusCode:statusCode validationFailures:[self _buildValidationFailures:jsonMessage.validationFailures]];
+  } else {
+    return [CrysonError errorWithMessage:"Unclassified error" statusCode:statusCode validationFailures:[]];
+  }
+}
+
+- (CPArray)_buildValidationFailures:(CPArray)rawValidationFailures
+{
+  if (!rawValidationFailures) {
+    return [];
+  }
+  
+  var validationFailures = [];
+  for(var ix = 0;ix < [rawValidationFailures count];ix++) {
+    var rawValidationFailure = [rawValidationFailures objectAtIndex:ix];
+    var entityClass = CPClassFromString(rawValidationFailure.entityClass);
+    var entityId = rawValidationFailure.entityId;
+    var entity = [self findCachedByClass:entityClass andId:entityId];
+    var keyPath = rawValidationFailure.keyPath;
+    var value = [entity valueForKeyPath:keyPath];
+    [validationFailures addObject:[CrysonValidationFailure validationFailureWithEntity:entity keyPath:keyPath value:value message:rawValidationFailure.message]];
+  }
+  return validationFailures;
 }
 
 @end
