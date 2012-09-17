@@ -18,9 +18,6 @@
 
 package se.sperber.cryson.repository;
 
-import se.sperber.cryson.exception.CrysonEntityConflictException;
-import se.sperber.cryson.exception.CrysonException;
-import se.sperber.cryson.exception.CrysonValidationFailedException;
 import org.apache.log4j.Logger;
 import org.aspectj.lang.annotation.AfterThrowing;
 import org.aspectj.lang.annotation.Aspect;
@@ -28,6 +25,8 @@ import org.hibernate.OptimisticLockException;
 import org.hibernate.StaleObjectStateException;
 import org.springframework.orm.hibernate3.HibernateOptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
+import se.sperber.cryson.exception.CrysonEntityConflictException;
+import se.sperber.cryson.exception.CrysonException;
 
 @Component
 @Aspect
@@ -37,7 +36,7 @@ public class CrysonRepositoryExceptionTranslator {
                  throwing="t")
   public void translateHibernateExceptions(Throwable t) throws Throwable {
     Logger.getLogger(CrysonRepositoryExceptionTranslator.class).error("Translating exception", t);
-    if (t instanceof CrysonValidationFailedException) {
+    if (t instanceof CrysonException) {
       throw t;
     } else if (t instanceof OptimisticLockException || t instanceof HibernateOptimisticLockingFailureException || t instanceof StaleObjectStateException) {
       throw new CrysonEntityConflictException("Optimistic locking failed", t);

@@ -19,6 +19,7 @@
 package se.sperber.cryson.exception;
 
 import javax.validation.ConstraintViolation;
+import javax.ws.rs.core.Response;
 import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -33,6 +34,11 @@ public class CrysonValidationFailedException extends CrysonException {
   public CrysonValidationFailedException(String message, Set<ConstraintViolation<Object>> constraintViolations) {
     super(message, null);
     this.constraintViolations = constraintViolations;
+  }
+
+  @Override
+  public int getStatusCode() {
+    return Response.Status.FORBIDDEN.getStatusCode();
   }
 
   @Override

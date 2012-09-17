@@ -231,7 +231,7 @@
   Note: If the entity was found in the session cache, the delegate method will be called synchronously, otherwise it will be called asynchronously.
 
   If the entity was not found, the following delegate method will instead be called:
-- - (void)crysonSession:(CrysonSession)aCrysonSession failedToFindByClass:(CLASS)anEntityClass andId:(int)anId
+- - (void)crysonSession:(CrysonSession)aCrysonSession failedToFindByClass:(CLASS)anEntityClass andId:(int)anId error:(CrysonError)error
 
   By passing an array of key paths (e.g ["children", "children.toys"]) as the 'associationsToFetch' argument, it is possible to force eager fetching of associations that would otherwise have been lazily fetched.
   Note: 'associationsToFetch' will only be considered if the entity is fetched from a Cryson server and not already in the session cache.
@@ -262,7 +262,7 @@
   Note: If the entities were found in the session cache, the delegate method will be called synchronously, otherwise it will be called asynchronously.
 
   If the entities were not found, the following delegate method will instead be called:
-- - (void)crysonSession:(CrysonSession)aCrysonSession failedToFindByClass:(CLASS)anEntityClass andIds:(CPArray)someIds
+- - (void)crysonSession:(CrysonSession)aCrysonSession failedToFindByClass:(CLASS)anEntityClass andIds:(CPArray)someIds error:(CrysonError)error
 
   By passing an array of key paths (e.g ["children", "children.toys"]) as the 'associationsToFetch' argument, it is possible to force eager fetching of associations that would otherwise have been lazily fetched.
   Note: 'associationsToFetch' will only be considered if the entity is fetched from a Cryson server and not already in the session cache.
@@ -297,7 +297,7 @@ After a successful refresh, the following delegate method will be called:
 - - (void)crysonSession:(CrysonSession)aCrysonSession refreshed:(CrysonEntity)anEntity
 
 If the refresh operation fails, this delegate method will instead be called:
-- - (void)crysonSession:(CrysonSession)aCrysonSession refreshFailedWithError:(CPString)errorString
+- - (void)crysonSession:(CrysonSession)aCrysonSession failedToRefresh:(CrysonEntity)anEntity error:(CrysonError)error
 
 By passing an array of key paths (e.g ["children", "children.toys"]) as the 'associationsToFetch' argument, it is possible to force eager fetching of associations that would otherwise have been lazily fetched.
 */
@@ -323,7 +323,7 @@ By passing an array of key paths (e.g ["children", "children.toys"]) as the 'ass
 - - (void)crysonSession:(CrysonSession)aCrysonSession foundAll:(CPArray)someEntities byClass:(CLASS)anEntityClass
 
   If a problem occurred, the following delegate method will instead be called:
-- - (void)crysonSession:(CrysonSession)aCrysonSession failedToFindAllByClass:(CLASS)anEntityClass
+- - (void)crysonSession:(CrysonSession)aCrysonSession failedToFindAllByClass:(CLASS)anEntityClass error:(CrysonError)error
 
 By passing an array of key paths (e.g ["children", "children.toys"]) as the 'associationsToFetch' argument, it is possible to force eager fetching of associations that would otherwise have been lazily fetched.
 */
@@ -353,7 +353,7 @@ By passing an array of key paths (e.g ["children", "children.toys"]) as the 'ass
 - - (void)crysonSession:(CrysonSession)aCrysonSession found:(CPArray)someEntities byNamedQuery:(CPString)aQueryName
 
   If a problem occurred, the following delegate method will instead be called:
-- - (void)crysonSession:(CrysonSession)aCrysonSession failedToFindByNamedQuery:(CPString)aQueryName
+- - (void)crysonSession:(CrysonSession)aCrysonSession failedToFindByNamedQuery:(CPString)aQueryName error:(CrysonError)error
 */
 - (void)findByNamedQuery:(CPString)queryName withParameters:(CPDictionary)parameters delegate:(id)aDelegate
 {
@@ -390,7 +390,7 @@ By passing an array of key paths (e.g ["children", "children.toys"]) as the 'ass
 - - (void)crysonSession:(CrysonSession)aCrysonSession found:(CPArray)someEntities byExample:(CrysonEntity)anExample
 
   If a problem occurred, the following delegate method will instead be called:
-- - (void)crysonSession:(CrysonSession)aCrysonSession failedToFindByExample:(CrysonEntity)anExample
+- - (void)crysonSession:(CrysonSession)aCrysonSession failedToFindByExample:(CrysonEntity)anExample error:(CrysonError)error
 
 By passing an array of key paths (e.g ["children", "children.toys"]) as the 'associationsToFetch' argument, it is possible to force eager fetching of associations that would otherwise have been lazily fetched.
 */
@@ -424,7 +424,7 @@ By passing an array of key paths (e.g ["children", "children.toys"]) as the 'ass
 Note: If no changes were committed, the delegate method will be called synchronously instead of asynchronously
 
 If the commit failed, the following delegate method is instead called:
-- - (void)crysonSession:(CrysonSession)aCrysonSession commitFailedWithError:(CPString)errorString
+- - (void)crysonSession:(CrysonSession)aCrysonSession commitFailedWithError:(CrysonError)error
 */
 - (void)commitWithDelegate:(id)aDelegate
 {
@@ -625,8 +625,8 @@ If the commit failed, the following delegate method is instead called:
 - (void)findAllByClassFailed:(CPString)errorString statusCode:(CPNumber)statusCode context:(CrysonSessionContext)context
 {
   [self finishLoadOperationForDelegate:[context delegate]];
-  if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindAllByClass:)]) {
-    [[context delegate] crysonSession:self failedToFindAllByClass:[context entityClass]];
+  if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindAllByClass:error:)]) {
+    [[context delegate] crysonSession:self failedToFindAllByClass:[context entityClass] error:[self _buildCrysonErrorWithRawMessage:errorString statusCode:statusCode]];
   }
 }
 
@@ -641,8 +641,8 @@ If the commit failed, the following delegate method is instead called:
 - (void)findAllByNamedQueryFailed:(CPString)errorString statusCode:(CPNumber)statusCode context:(CrysonSessionContext)context
 {
   [self finishLoadOperationForDelegate:[context delegate]];
-  if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindByNamedQuery:)]) {
-    [[context delegate] crysonSession:self failedToFindByNamedQuery:[context namedQuery]];
+  if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindByNamedQuery:error:)]) {
+    [[context delegate] crysonSession:self failedToFindByNamedQuery:[context namedQuery] error:[self _buildCrysonErrorWithRawMessage:errorString statusCode:statusCode]];
   }
 }
 
@@ -657,8 +657,8 @@ If the commit failed, the following delegate method is instead called:
 - (void)findAllByExampleFailed:(CPString)errorString statusCode:(CPNumber)statusCode context:(CrysonSessionContext)context
 {
   [self finishLoadOperationForDelegate:[context delegate]];
-  if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindByExample:)]) {
-    [[context delegate] crysonSession:self failedToFindByExample:[context example]];
+  if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindByExample:error:)]) {
+    [[context delegate] crysonSession:self failedToFindByExample:[context example] error:[self _buildCrysonErrorWithRawMessage:errorString statusCode:statusCode]];
   }
 }
 
@@ -673,8 +673,8 @@ If the commit failed, the following delegate method is instead called:
 - (void)findByClassAndIdFailed:(CPString)errorString statusCode:(CPNumber)statusCode context:(CrysonSessionContext)context
 {
   [self finishLoadOperationForDelegate:[context delegate]];
-  if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindByClass:andId:)]) {
-    [[context delegate] crysonSession:self failedToFindByClass:[context entityClass] andId:[context entityId]];
+  if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindByClass:andId:error:)]) {
+    [[context delegate] crysonSession:self failedToFindByClass:[context entityClass] andId:[context entityId] error:[self _buildCrysonErrorWithRawMessage:errorString statusCode:statusCode]];
   }
 }
 
@@ -693,8 +693,8 @@ If the commit failed, the following delegate method is instead called:
 - (void)findByClassAndIdsFailed:(CPString)errorString statusCode:(CPNumber)statusCode context:(CrysonSessionContext)context
 {
   [self finishLoadOperationForDelegate:[context delegate]];
-  if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindByExample:)]) {
-    [[context delegate] crysonSession:self failedToFindByClass:[context entityClass] andIds:[context entityId]];
+  if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindByClass:andIds:error:)]) {
+    [[context delegate] crysonSession:self failedToFindByClass:[context entityClass] andIds:[context entityId] error:[self _buildCrysonErrorWithRawMessage:errorString statusCode:statusCode]];
   }
 }
 
@@ -709,8 +709,8 @@ If the commit failed, the following delegate method is instead called:
 - (void)refreshFailed:(CPString)errorString statusCode:(CPNumber)statusCode context:(CrysonSessionContext)context
 {
   [self finishLoadOperationForDelegate:[context delegate]];
-  if ([[context delegate] respondsToSelector:@selector(crysonSession:refreshFailedWithError:)]) {
-    [[context delegate] crysonSession:self refreshFailedWithError:[self _buildCrysonErrorWithRawMessage:errorString statusCode:statusCode]];
+  if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToRefresh:error:)]) {
+    [[context delegate] crysonSession:self failedToRefresh:[context entityToRefresh] error:[self _buildCrysonErrorWithRawMessage:errorString statusCode:statusCode]];
   }
 }
 
@@ -720,7 +720,11 @@ If the commit failed, the following delegate method is instead called:
     var jsonMessage = [aMessage objectFromJSON];
     return [CrysonError errorWithMessage:jsonMessage.message statusCode:statusCode validationFailures:[self _buildValidationFailures:jsonMessage.validationFailures]];
   } else {
-    return [CrysonError errorWithMessage:"Unclassified error" statusCode:statusCode validationFailures:[]];
+    var errorMessage = "Unclassified error";
+    if (statusCode == 0) {
+      errorMessage = "Could not contact server";
+    }
+    return [CrysonError errorWithMessage:errorMessage statusCode:statusCode validationFailures:[]];
   }
 }
 

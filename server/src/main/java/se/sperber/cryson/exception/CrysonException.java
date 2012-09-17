@@ -18,6 +18,7 @@
 
 package se.sperber.cryson.exception;
 
+import javax.ws.rs.core.Response;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,6 +33,10 @@ public class CrysonException extends RuntimeException {
     Map<String, Serializable> message = new HashMap<String, Serializable>();
     message.put("message", getMessage());
     return message;
+  }
+
+  public int getStatusCode() {
+    return Response.Status.INTERNAL_SERVER_ERROR.getStatusCode();
   }
 
 }

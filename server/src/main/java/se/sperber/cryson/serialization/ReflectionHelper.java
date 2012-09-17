@@ -105,10 +105,9 @@ public class ReflectionHelper {
       fieldField.setAccessible(true);
       return isLazyField((Field)fieldField.get(f));
     } catch (NoSuchFieldException e) {
-      e.printStackTrace();
-      throw new IllegalStateException("Couldn't find 'field' of FieldAttributes. Shouldn't happen...");
+      throw new IllegalStateException("Couldn't find 'field' of FieldAttributes. Shouldn't happen...", e);
     } catch (IllegalAccessException e) {
-      throw new IllegalStateException("Couldn't read 'field' of FieldAttributes. Shouldn't happen...");
+      throw new IllegalStateException("Couldn't read 'field' of FieldAttributes. Shouldn't happen...", e);
     }
   }
 

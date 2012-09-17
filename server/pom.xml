@@ -4,9 +4,11 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
+  <name>cryson</name>
+
   <groupId>se.sperber.cryson</groupId>
   <artifactId>cryson</artifactId>
-  <version>0.4</version>
+  <version>0.5.0</version>
 
   <licenses>
     <license>

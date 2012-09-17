@@ -29,7 +29,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import se.sperber.cryson.exception.CrysonEntityConflictException;
 import se.sperber.cryson.exception.CrysonException;
-import se.sperber.cryson.exception.CrysonValidationFailedException;
 import se.sperber.cryson.listener.CrysonListener;
 import se.sperber.cryson.listener.ListenerNotificationBatch;
 import se.sperber.cryson.serialization.CrysonSerializer;
@@ -190,14 +189,7 @@ public class CrysonFrontendService {
 
   private Response translateCrysonException(CrysonException e) {
     String serializedMessage = crysonSerializer.serializeWithoutAugmentation(e.getSerializableMessage());
-    if (e instanceof CrysonValidationFailedException) {
-      return Response.status(Response.Status.FORBIDDEN).entity(serializedMessage).build();
-    } else if (e instanceof CrysonEntityConflictException) {
-      return Response.status(Response.Status.CONFLICT).entity(serializedMessage).build();
-    } else {
-      e.printStackTrace();
-      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(serializedMessage).build();
-    }
+    return Response.status(e.getStatusCode()).entity(serializedMessage).build();
   }
   
   private Response translateThrowable(Throwable t) {
@@ -210,7 +202,6 @@ public class CrysonFrontendService {
     } else if (t instanceof ParseException) {
       return Response.status(Response.Status.BAD_REQUEST).entity(buildJsonMessage(t.getMessage())).build();
     } else {
-      t.printStackTrace();
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(buildJsonMessage(t.getMessage())).build();
     }
   }

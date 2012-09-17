@@ -30,6 +30,7 @@ import org.springframework.context.annotation.ClassPathScanningCandidateComponen
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import se.sperber.cryson.exception.CrysonEntityNotFoundException;
 import se.sperber.cryson.listener.ListenerNotificationBatch;
 import se.sperber.cryson.repository.CrysonRepository;
 import se.sperber.cryson.security.Restrictable;
@@ -40,7 +41,6 @@ import javax.annotation.PostConstruct;
 import javax.persistence.Entity;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
@@ -129,7 +129,7 @@ public class CrysonService {
     if (entity != null) {
       return Response.ok(crysonSerializer.serialize(entity, associationsToFetch)).build();
     } else {
-      return Response.status(Status.NOT_FOUND).build();
+      throw new CrysonEntityNotFoundException("Not found", null);
     }
   }
 

@@ -160,7 +160,6 @@ public class CrysonSerializer {
         }
       }
     } catch(Throwable t) {
-      t.printStackTrace();
       throw new RuntimeException(t);
     }
   }
@@ -194,7 +193,6 @@ public class CrysonSerializer {
         }
       }
     } catch(Throwable t) {
-      t.printStackTrace();
       throw new RuntimeException(t);
     }
   }
@@ -209,7 +207,6 @@ public class CrysonSerializer {
         field.set(entity, primaryKey);
       }
     } catch(Throwable t) {
-      t.printStackTrace();
       throw new RuntimeException(t);
     }
   }
@@ -273,7 +270,6 @@ public class CrysonSerializer {
       }
       return object;
     } catch(Throwable t) {
-      t.printStackTrace();
       throw new RuntimeException(t);
     }
   }
