@@ -137,6 +137,13 @@ public class CrysonSerializer {
           }
         }
 
+        Set<Method> transientGetters = reflectionHelper.getAllDeclaredTransientGetters(object.getClass());
+        for (Method method : transientGetters) {
+          Object methodValue = method.invoke(object);
+          JsonElement jsonFieldValue = gsonAllInclusive.toJsonTree(methodValue);
+          jsonElement.getAsJsonObject().add(reflectionHelper.getAttributeNameFromGetterName(method.getName()), jsonFieldValue);
+        }
+
         Set<Field> fields = getLazyFields(object.getClass());
         for(Field field : fields) {
           Object fieldValue = field.get(object);
