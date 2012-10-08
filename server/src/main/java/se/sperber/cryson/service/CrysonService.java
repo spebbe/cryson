@@ -42,6 +42,7 @@ import javax.persistence.Entity;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
 
@@ -117,6 +118,11 @@ public class CrysonService {
         fieldClassName = ((Class) ((ParameterizedType)field.getGenericType()).getActualTypeArguments()[0]).getSimpleName();
       }
       entityDefinition.put(field.getName(), fieldClassName);
+    }
+
+    Set <Method> transientMethods = reflectionHelper.getAllDeclaredTransientGetters(klazz);
+    for (Method method : transientMethods) {
+      entityDefinition.put(reflectionHelper.getAttributeNameFromGetterName(method.getName()), method.getReturnType().getSimpleName());
     }
 
     entityDefinition.put("crysonEntityClass", "String");

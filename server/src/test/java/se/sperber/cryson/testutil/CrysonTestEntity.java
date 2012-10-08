@@ -79,6 +79,11 @@ public class CrysonTestEntity implements Serializable, Restrictable {
     this.childEntities = childEntities;
   }
 
+  @Transient
+  public Long getDoubleId() {
+    return id * 2;
+  }
+
   @Override
   public boolean isReadableBy(Authentication authentication) {
     return true;
