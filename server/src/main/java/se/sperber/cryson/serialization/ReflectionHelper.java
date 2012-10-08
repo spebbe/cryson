@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 
 import javax.persistence.*;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -122,5 +123,25 @@ public class ReflectionHelper {
       currentKlazz = currentKlazz.getSuperclass();
     }
     return fields;
+  }
+
+  public Set<Method> getAllDeclaredTransientGetters(Class klazz) {
+    Class currentKlazz = klazz;
+    Set<Method> methods = new HashSet<Method>();
+    while(currentKlazz != Object.class) {
+      Method currentMethods[] = currentKlazz.getMethods();
+      for(Method method : currentMethods) {
+        if (method.isAnnotationPresent(Transient.class) && method.getName().startsWith("get")) {
+          methods.add(method);
+        }
+      }
+      currentKlazz = currentKlazz.getSuperclass();
+    }
+    return methods;
+  }
+
+  public String getAttributeNameFromGetterName(String methodName) {
+    String capitalizedAttributeName = methodName.replaceFirst("get", "");
+    return capitalizedAttributeName.substring(0, 1).toLowerCase() + capitalizedAttributeName.substring(1);
   }
 }

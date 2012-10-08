@@ -62,7 +62,7 @@ public class CrysonSerializerTest {
       testChildEntity.setParent(testEntity);
       
       String serializedChildEntity = crysonSerializer.serialize(testChildEntity);
-      String expectedSerializedChildEntity = "{\"id\":100,\"parent\":{\"id\":1,\"name\":\"test\",\"version\":1,\"crysonEntityClass\":\"CrysonTestEntity\",\"childEntities_cryson_ids\":[100]},\"crysonEntityClass\":\"CrysonTestChildEntity\"}";
+      String expectedSerializedChildEntity = "{\"id\":100,\"parent\":{\"id\":1,\"name\":\"test\",\"version\":1,\"crysonEntityClass\":\"CrysonTestEntity\",\"doubleId\":2,\"childEntities_cryson_ids\":[100]},\"crysonEntityClass\":\"CrysonTestChildEntity\"}";
       assertEquals(expectedSerializedChildEntity, serializedChildEntity);
     }
     
