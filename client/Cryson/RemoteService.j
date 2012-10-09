@@ -25,10 +25,20 @@
   SEL action @accessors;
   SEL errorAction @accessors;
   id callerContext @accessors;
+
+  // For retry
+  CPString verb @accessors;
+  CPString requestUrl @accessors;
+  id requestObject @accessors;
+  CPNumber retryCount @accessors;
 }
 
 - (void)connection:(ContextualConnection)connection didFailWithError:(id)error
 {
+  if (retryHandler && ([retryHandler willRetryRemoteServiceContext:self data:error statusCode:statusCode])) {
+    return;
+  }
+
   if (errorAction) {
     if (callerContext) {
       [delegate performSelector:errorAction withObjects:error,statusCode,callerContext];
@@ -40,7 +50,7 @@
 
 - (void)connection:(ContextualConnection)connection didReceiveResponse:(CPHTTPURLResponse)response
 {
-  statusCode = [response statusCode];
+  statusCode = (parseInt([response statusCode]) || 0);
 }
 
 - (void)connection:(ContextualConnection)connection didReceiveData:(CPString)data
@@ -52,6 +62,11 @@
       [delegate performSelector:action withObject:[self fromJSON:data]];
     }
   } else {
+
+    if (retryHandler && ([retryHandler willRetryRemoteServiceContext:self data:data statusCode:statusCode])) {
+      return;
+    }
+
     if (errorAction) {
       if (callerContext) {
         [delegate performSelector:errorAction withObjects:data,statusCode,callerContext];
@@ -74,6 +89,8 @@
 
 var sharedInstance = nil;
 
+var retryHandler = nil;
+
 @implementation RemoteService : CPObject
 {
 }
@@ -86,6 +103,11 @@ var sharedInstance = nil;
   return sharedInstance;
 }
 
++ (void)setRetryHandler:(id)aRetryHandler
+{
+  retryHandler = aRetryHandler;
+}
+
 + (void)get:(CPString)requestUrl delegate:(id)delegate onSuccess:(SEL)action onError:(SEL)errorAction context:(id)callerContext
 {
   var context = [[RemoteServiceContext alloc] init];
@@ -93,6 +115,10 @@ var sharedInstance = nil;
   [context setAction:action];
   [context setErrorAction:errorAction];
   [context setCallerContext:callerContext];
+  [context setVerb:@"GET"];
+  [context setRequestUrl:requestUrl];
+  [context setRequestObject:nil];
+  [context setRetryCount:0];
   [RequestHelper asyncGet:requestUrl context:context delegate:context];
 }
 
@@ -129,6 +155,10 @@ var sharedInstance = nil;
   [context setAction:action];
   [context setErrorAction:errorAction];
   [context setCallerContext:callerContext];
+  [context setVerb:@"POST"];
+  [context setRequestUrl:requestUrl];
+  [context setRequestObject:object];
+  [context setRetryCount:0];
   [RequestHelper asyncPost:requestUrl object:object context:context delegate:context];
 }
 
