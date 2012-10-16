@@ -21,6 +21,7 @@ package se.sperber.cryson.serialization;
 import com.google.gson.FieldAttributes;
 import com.mysql.jdbc.StringUtils;
 import org.springframework.stereotype.Component;
+import se.sperber.cryson.annotation.VirtualAttribute;
 
 import javax.persistence.*;
 import java.lang.reflect.Field;
@@ -125,13 +126,13 @@ public class ReflectionHelper {
     return fields;
   }
 
-  public Set<Method> getAllDeclaredTransientGetters(Class klazz) {
+  public Set<Method> getAllDeclaredVirtualAttributeGetters(Class klazz) {
     Class currentKlazz = klazz;
     Set<Method> methods = new HashSet<Method>();
     while(currentKlazz != Object.class) {
       Method currentMethods[] = currentKlazz.getMethods();
       for(Method method : currentMethods) {
-        if (method.isAnnotationPresent(Transient.class) && method.getName().startsWith("get")) {
+        if (method.isAnnotationPresent(VirtualAttribute.class) && method.getName().startsWith("get")) {
           methods.add(method);
         }
       }
