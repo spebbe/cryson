@@ -120,9 +120,14 @@ public class CrysonService {
       entityDefinition.put(field.getName(), fieldClassName);
     }
 
-    Set <Method> transientMethods = reflectionHelper.getAllDeclaredTransientGetters(klazz);
+    Set <Method> transientMethods = reflectionHelper.getAllDeclaredVirtualAttributeGetters(klazz);
     for (Method method : transientMethods) {
-      entityDefinition.put(reflectionHelper.getAttributeNameFromGetterName(method.getName()), method.getReturnType().getSimpleName());
+      if (method.getGenericReturnType() instanceof ParameterizedType) {
+        String className = ((Class) ((ParameterizedType)method.getGenericReturnType()).getActualTypeArguments()[0]).getSimpleName();
+        entityDefinition.put(reflectionHelper.getAttributeNameFromGetterName(method.getName()), className);
+      } else {
+        entityDefinition.put(reflectionHelper.getAttributeNameFromGetterName(method.getName()), method.getReturnType().getSimpleName());
+      }
     }
 
     entityDefinition.put("crysonEntityClass", "String");
