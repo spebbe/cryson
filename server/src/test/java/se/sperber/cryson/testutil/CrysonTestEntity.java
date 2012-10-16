@@ -18,6 +18,7 @@
 
 package se.sperber.cryson.testutil;
 
+import se.sperber.cryson.annotation.VirtualAttribute;
 import se.sperber.cryson.security.Restrictable;
 import org.hibernate.envers.Audited;
 import org.springframework.security.core.Authentication;
@@ -25,6 +26,7 @@ import org.springframework.security.core.Authentication;
 import javax.persistence.*;
 import javax.validation.constraints.Size;
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -79,7 +81,7 @@ public class CrysonTestEntity implements Serializable, Restrictable {
     this.childEntities = childEntities;
   }
 
-  @Transient
+  @VirtualAttribute
   public Long getDoubleId() {
     return id * 2;
   }

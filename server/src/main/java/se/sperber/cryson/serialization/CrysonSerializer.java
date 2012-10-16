@@ -137,7 +137,7 @@ public class CrysonSerializer {
           }
         }
 
-        Set<Method> transientGetters = reflectionHelper.getAllDeclaredTransientGetters(object.getClass());
+        Set<Method> transientGetters = reflectionHelper.getAllDeclaredVirtualAttributeGetters(object.getClass());
         for (Method method : transientGetters) {
           Object methodValue = method.invoke(object);
           JsonElement jsonFieldValue = gsonAllInclusive.toJsonTree(methodValue);
