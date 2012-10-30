@@ -693,8 +693,13 @@ If the commit failed, the following delegate method is instead called:
 - (void)findByClassAndIdsFailed:(CPString)errorString statusCode:(CPNumber)statusCode context:(CrysonSessionContext)context
 {
   [self finishLoadOperationForDelegate:[context delegate]];
-  if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindByClass:andIds:error:)]) {
-    [[context delegate] crysonSession:self failedToFindByClass:[context entityClass] andIds:[context entityId] error:[self _buildCrysonErrorWithRawMessage:errorString statusCode:statusCode]];
+  
+  // A status code of 404 is not an error. Ta da!
+  if (statusCode == 404) {
+    [[context delegate] crysonSession:self found:[CPArray array] byClass:[context entityClass] andIds:[context entityId]];
+  } else if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindByClass:andIds:error:)]) {
+      [[context delegate] crysonSession:self failedToFindByClass:[context entityClass] andIds:[context entityId] error:[self _buildCrysonErrorWithRawMessage:errorString statusCode:statusCode]];
+    }
   }
 }
 
