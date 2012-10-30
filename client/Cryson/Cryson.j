@@ -16,6 +16,8 @@
   limitations under the License.
 */
 
+@import <Foundation/CPObject.j>
+
 @import "Resources/underscore-min.js"
 @import "CrysonMutableEntitySet.j"
 @import "CrysonError.j"
