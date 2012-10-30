@@ -698,8 +698,7 @@ If the commit failed, the following delegate method is instead called:
   if (statusCode == 404) {
     [[context delegate] crysonSession:self found:[CPArray array] byClass:[context entityClass] andIds:[context entityId]];
   } else if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindByClass:andIds:error:)]) {
-      [[context delegate] crysonSession:self failedToFindByClass:[context entityClass] andIds:[context entityId] error:[self _buildCrysonErrorWithRawMessage:errorString statusCode:statusCode]];
-    }
+    [[context delegate] crysonSession:self failedToFindByClass:[context entityClass] andIds:[context entityId] error:[self _buildCrysonErrorWithRawMessage:errorString statusCode:statusCode]];
   }
 }
 
