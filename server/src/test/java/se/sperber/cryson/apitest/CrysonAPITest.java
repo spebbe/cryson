@@ -19,10 +19,6 @@
 package se.sperber.cryson.apitest;
 
 import com.google.gson.JsonElement;
-import se.sperber.cryson.CrysonServer;
-import se.sperber.cryson.initialization.Application;
-import se.sperber.cryson.serialization.CrysonSerializer;
-import se.sperber.cryson.testutil.CrysonTestEntity;
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpStatus;
@@ -37,12 +33,14 @@ import org.hibernate.SessionFactory;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import se.sperber.cryson.CrysonServer;
+import se.sperber.cryson.initialization.Application;
+import se.sperber.cryson.serialization.CrysonSerializer;
+import se.sperber.cryson.testutil.CrysonTestEntity;
 
 import java.net.URLEncoder;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 
 public class CrysonAPITest {
 
@@ -93,7 +91,7 @@ public class CrysonAPITest {
 
   @Test
   public void shouldCreateEntities() throws Exception {
-    String serializedEntity = "{\"id\":null,\"childEntities_cryson_ids\":[100]}";
+    String serializedEntity = "{\"id\":null, \"name\":\"created\", \"childEntities_cryson_ids\":[100]}";
 
     PutMethod entityPutMethod = new PutMethod("http://localhost:8789/cryson/CrysonTestEntity");
     entityPutMethod.setRequestEntity(new StringRequestEntity(serializedEntity, "application/json", "UTF-8"));
@@ -177,6 +175,19 @@ public class CrysonAPITest {
   }
 
   @Test
+  public void shouldFindEntitiesByNamedQuery() throws Exception {
+    GetMethod getMethod = new GetMethod("http://localhost:8789/cryson/namedQuery/CrysonTestEntity.findByName?name=created&fetch=childEntities");
+    int status = httpClient.executeMethod(getMethod);
+    assertEquals(HttpStatus.SC_OK, status);
+
+    JsonElement jsonElement = crysonSerializer.parse(getMethod.getResponseBodyAsString());
+    assertEquals(1, jsonElement.getAsJsonArray().size());
+    CrysonTestEntity testEntity = crysonSerializer.deserialize(jsonElement.getAsJsonArray().get(0), CrysonTestEntity.class, null);
+    assertEquals(foundEntity.getId(), testEntity.getId());
+    assertEquals((long)foundEntity.getChildEntities().iterator().next().getId(), jsonElement.getAsJsonArray().get(0).getAsJsonObject().get("childEntities").getAsJsonArray().get(0).getAsJsonObject().get("id").getAsLong());
+  }
+
+  @Test
   public void shouldCommitEntities() throws Exception {
     Long entityId = foundEntity.getId();
     Long childEntityId = foundEntity.getChildEntities().iterator().next().getId();
@@ -216,18 +227,6 @@ public class CrysonAPITest {
     PostMethod postMethod = new PostMethod("http://localhost:8789/cryson/commit");
     postMethod.setRequestEntity(new StringRequestEntity(commitJson, "application/json", "UTF-8"));
     assertEquals(HttpStatus.SC_OK, httpClient.executeMethod(postMethod));
-  }
-
-  @Test
-  public void shouldFindEntitiesByNamedQuery() throws Exception {
-    GetMethod getMethod = new GetMethod("http://localhost:8789/cryson/namedQuery/CrysonTestEntity.findByName?name=updated");
-    int status = httpClient.executeMethod(getMethod);
-    assertEquals(HttpStatus.SC_OK, status);
-
-    JsonElement jsonElement = crysonSerializer.parse(getMethod.getResponseBodyAsString());
-    assertEquals(1, jsonElement.getAsJsonArray().size());
-    CrysonTestEntity testEntity = crysonSerializer.deserialize(jsonElement.getAsJsonArray().get(0), CrysonTestEntity.class, null);
-    assertEquals(foundEntity.getId(), testEntity.getId());
   }
 
 }

@@ -35,10 +35,7 @@ import se.sperber.cryson.serialization.CrysonSerializer;
 
 import javax.annotation.PostConstruct;
 import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
+import javax.ws.rs.core.*;
 import java.io.Serializable;
 import java.text.ParseException;
 import java.util.*;
@@ -132,9 +129,12 @@ public class CrysonFrontendService {
 
   @GET
   @Path("namedQuery/{query_name}")
-  public Response getEntitiesByNamedQuery(@PathParam("query_name") String queryName, @Context UriInfo uriInfo) {
+  public Response getEntitiesByNamedQuery(@PathParam("query_name") String queryName, @Context UriInfo uriInfo, @QueryParam("fetch") String rawAssociationsToFetch) {
     try {
-      return crysonService.getEntitiesByNamedQuery(queryName, uriInfo.getQueryParameters());
+      Set<String> associationsToFetch = splitAssociationsToFetch(rawAssociationsToFetch);
+      MultivaluedMap<String,String> queryParameters = uriInfo.getQueryParameters();
+      queryParameters.remove("fetch");
+      return crysonService.getEntitiesByNamedQuery(queryName, queryParameters, associationsToFetch);
     } catch(Throwable t) {
       return translateThrowable(t);
     }

@@ -354,8 +354,10 @@ By passing an array of key paths (e.g ["children", "children.toys"]) as the 'ass
 
   If a problem occurred, the following delegate method will instead be called:
 - - (void)crysonSession:(CrysonSession)aCrysonSession failedToFindByNamedQuery:(CPString)aQueryName error:(CrysonError)error
+
+By passing an array of key paths (e.g ["children", "children.toys"]) as the 'associationsToFetch' argument, it is possible to force eager fetching of associations that would otherwise have been lazily fetched.
 */
-- (void)findByNamedQuery:(CPString)queryName withParameters:(CPDictionary)parameters delegate:(id)aDelegate
+- (void)findByNamedQuery:(CPString)queryName withParameters:(CPDictionary)parameters fetch:(CPArray)associationsToFetch delegate:(id)aDelegate
 {
   var url = baseUrl + "/namedQuery/" + queryName + "/";
   var firstParameter = YES;
@@ -366,6 +368,7 @@ By passing an array of key paths (e.g ["children", "children.toys"]) as the 'ass
     var parameterName = [parameterNames objectAtIndex:ix];
     url += parameterName + "=" + encodeURIComponent([parameters objectForKey:parameterName]);
   }
+  url += (firstParameter ? "?" : "&") + "fetch=" + [self _associationNamesToFetchString:associationsToFetch];
   var context = [CrysonSessionContext contextWithDelegate:aDelegate];
   [context setNamedQuery:queryName];
   [self startLoadOperationForDelegate:aDelegate];
@@ -378,11 +381,11 @@ By passing an array of key paths (e.g ["children", "children.toys"]) as the 'ass
 
 /*!
   Same as CrysonSession#findByNamedQuery:withParameters:delegate:, but sends callback messages to the default delegate instead of an explicitly specified one.
-@see CrysonSession#findByNamedQuery:withParameters:delegate:
+@see CrysonSession#findByNamedQuery:withParameters:fetch:delegate:
 */
-- (void)findByNamedQuery:(CPString)queryName withParameters:(CPDictionary)parameters
+- (void)findByNamedQuery:(CPString)queryName withParameters:(CPDictionary)parameters fetch:(CPArray)associationsToFetch
 {
-  [self findByNamedQuery:queryName withParameters:parameters delegate:delegate];
+  [self findByNamedQuery:queryName withParameters:parameters fetch:associationsToFetch delegate:delegate];
 }
 
 /*!

@@ -161,9 +161,9 @@ public class CrysonService {
     return Response.ok(crysonSerializer.serialize(entities, associationsToFetch)).build();
   }
 
-  public Response getEntitiesByNamedQuery(String queryName, MultivaluedMap<String,String> queryParameters) {
+  public Response getEntitiesByNamedQuery(String queryName, MultivaluedMap<String, String> queryParameters, Set<String> associationsToFetch) {
     List<Object> entities = crysonRepository.findByNamedQuery(queryName, queryParameters);
-    return Response.ok(crysonSerializer.serialize(entities)).build();
+    return Response.ok(crysonSerializer.serialize(entities, associationsToFetch)).build();
   }
 
   public Response createEntity(String entityName, String json, ListenerNotificationBatch listenerNotificationBatch) throws Exception {
