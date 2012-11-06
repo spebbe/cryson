@@ -1,14 +1,14 @@
 /*
   Cryson
-  
+
   Copyright 2011-2012 Björn Sperber (cryson@sperber.se)
-  
+
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
-  
+
   http://www.apache.org/licenses/LICENSE-2.0
-  
+
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -82,6 +82,8 @@
   [deletedEntities removeObject:entity];
   [rootEntities removeEntity:entity];
   [entity setSession:nil];
+  [entity removeObserver:self
+              forKeyPath:@"dirty"];
 }
 
 /*!
@@ -91,6 +93,22 @@
 {
   [rootEntities addEntity:entity];
   [entity setSession:self];
+  [entity addObserver:self
+           forKeyPath:@"dirty"
+              options:nil
+              context:nil];
+}
+
+- (void)observeValueForKeyPath:(CPString)aPath
+                      ofObject:(id)anObject
+                        change:(CPDictionary)theChange
+                       context:(void)aContext
+{
+  if (aPath == @"dirty") {
+    if ([delegate respondsToSelector:@selector(crysonSession:dirtyDidChangeForEntity:)]) {
+      [delegate crysonSession:self dirtyDidChangeForEntity:anObject];
+    }
+  }
 }
 
 /*!
@@ -216,7 +234,8 @@
   }
 
   var entity = [[entityClass alloc] initWithJSObject:entityJSObject session:self];
-  [rootEntities addEntity:entity];
+  [self attach:entity];
+
   return entity;
 }
 
@@ -696,7 +715,7 @@ If the commit failed, the following delegate method is instead called:
 - (void)findByClassAndIdsFailed:(CPString)errorString statusCode:(CPNumber)statusCode context:(CrysonSessionContext)context
 {
   [self finishLoadOperationForDelegate:[context delegate]];
-  
+
   // A status code of 404 is not an error. Ta da!
   if (statusCode == 404) {
     [[context delegate] crysonSession:self found:[CPArray array] byClass:[context entityClass] andIds:[context entityId]];
@@ -740,7 +759,7 @@ If the commit failed, the following delegate method is instead called:
   if (!rawValidationFailures) {
     return [];
   }
-  
+
   var validationFailures = [];
   for(var ix = 0;ix < [rawValidationFailures count];ix++) {
     var rawValidationFailure = [rawValidationFailures objectAtIndex:ix];
