@@ -259,10 +259,19 @@
 {
   var cachedEntity = [self findCachedByClass:entityClass andId:id];
   if (cachedEntity) {
-    [aDelegate crysonSession:self found:cachedEntity byClass:entityClass];
+    [[CPRunLoop mainRunLoop] performSelector:@selector(trampoline:)
+                                      target:self
+                                    argument:function() { [aDelegate crysonSession:self found:cachedEntity byClass:entityClass]; }
+                                       order:1
+                                       modes:nil];
   } else {
     [self fetchByClass:entityClass andId:id fetch:associationsToFetch delegate:aDelegate];
   }
+}
+
+- (void)trampoline:(JSFunction)aFunc
+{
+  aFunc();
 }
 
 /*!
