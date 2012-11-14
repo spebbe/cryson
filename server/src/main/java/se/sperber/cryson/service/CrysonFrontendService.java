@@ -18,6 +18,8 @@
 
 package se.sperber.cryson.service;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import org.apache.log4j.Logger;
 import org.hibernate.OptimisticLockException;
 import org.hibernate.StaleObjectStateException;
@@ -158,7 +160,11 @@ public class CrysonFrontendService {
   public Response commit(@Context UriInfo uriInfo, @Context HttpHeaders httpHeaders, String json) {
     try {
       ListenerNotificationBatch listenerNotificationBatch = new ListenerNotificationBatch(uriInfo, httpHeaders);
-      Response response = crysonService.commit(json, listenerNotificationBatch);
+      JsonElement committedEntities = crysonSerializer.parse(json);
+      JsonObject responseJsonObject = crysonService.commit(committedEntities, listenerNotificationBatch);
+      responseJsonObject.add("versions", crysonService.versionsForUpdatedEntities(committedEntities));
+      Response response = Response.ok(crysonSerializer.serializeTree(responseJsonObject)).build();
+
       notifyCommit(listenerNotificationBatch);
       return response;
     } catch(Throwable t) {
@@ -193,6 +199,7 @@ public class CrysonFrontendService {
   }
   
   private Response translateThrowable(Throwable t) {
+    logger.error("Error", t);
     if (t instanceof CrysonException) {
       return translateCrysonException((CrysonException)t);
     } else if (t instanceof OptimisticLockException || t instanceof HibernateOptimisticLockingFailureException || t instanceof StaleObjectStateException) {

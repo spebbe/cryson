@@ -205,14 +205,14 @@
   }
 }
 
-@end
-
-@implementation CrysonSession (Private)
-
 - (CrysonEntity)findCachedByClass:(Class)entityClass andId:(int)id
 {
   return [rootEntities findByClass:entityClass andId:id];
 }
+
+@end
+
+@implementation CrysonSession (Private)
 
 - (CPArray)materializeEntities:(CPArray)entityJSObjects
 {
@@ -610,6 +610,7 @@ If the commit failed, the following delegate method is instead called:
   [persistedEntities removeObjectsInArray:[context persistedEntities]];
   [self _replaceTemporaryIds:commitResult.replacedTemporaryIds forPersistedEntities:[context persistedEntities]];
   [self _refreshPersistedEntities:commitResult.persistedEntities];
+  [self _updateVersions:commitResult.versions];
   [[context updatedEntities] makeObjectsPerformSelector:@selector(virginize)];
   [deletedEntities removeObjectsInArray:[context deletedEntities]];
   [[context delegate] crysonSessionCommitted:self];
@@ -634,6 +635,16 @@ If the commit failed, the following delegate method is instead called:
     var entityId = persistedEntityJSObject.id;
     var persistedEntity = [self findCachedByClass:entityClass andId:entityId];
     [persistedEntity refreshWithJSObject:persistedEntityJSObject];
+  }
+}
+
+- (void)_updateVersions:(CPArray)versions
+{
+  for(var ix = 0;ix < [versions count];ix++) {
+    var version = [versions objectAtIndex:ix],
+        entity = [self findCachedByClass:CPClassFromString(version.crysonEntityClass) andId:version.id],
+        versionFieldName = [crysonDefinitionRepository versionFieldNameForClass:[entity class]];
+    [entity setValue:version.version forKey:versionFieldName];
   }
 }
 

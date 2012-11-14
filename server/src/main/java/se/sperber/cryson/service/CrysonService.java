@@ -39,6 +39,7 @@ import se.sperber.cryson.serialization.ReflectionHelper;
 
 import javax.annotation.PostConstruct;
 import javax.persistence.Entity;
+import javax.persistence.Version;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import java.lang.reflect.Field;
@@ -70,7 +71,7 @@ public class CrysonService {
   private Map<Class<?>, Integer> classInsertionOrder;
 
   private String cachedDefinitions;
-  
+
   @PostConstruct
   public void findEntityClasses() {
     ClassPathScanningCandidateComponentProvider provider = new ClassPathScanningCandidateComponentProvider(false);
@@ -130,6 +131,12 @@ public class CrysonService {
       }
     }
 
+    for (Field field : fields) {
+      if (field.isAnnotationPresent(Version.class)) {
+        entityDefinition.put("crysonVersionAttribute", field.getName());
+      }
+    }
+
     entityDefinition.put("crysonEntityClass", "String");
 
     return entityDefinition;
@@ -175,9 +182,7 @@ public class CrysonService {
     return Response.ok(crysonSerializer.serialize(entity)).build();
   }
 
-  public Response commit(String json, ListenerNotificationBatch listenerNotificationBatch) throws Exception {
-    JsonElement committedEntities = crysonSerializer.parse(json);
-
+  public JsonObject commit(JsonElement committedEntities, ListenerNotificationBatch listenerNotificationBatch) throws Exception {
     List<Object> refreshedPersistedEntities = new ArrayList<Object>();
 
     Map<Long, Long> replacedTemporaryIds = new HashMap<Long, Long>();
@@ -203,7 +208,6 @@ public class CrysonService {
     }
 
     JsonArray updatedEntities = committedEntities.getAsJsonObject().get("updatedEntities").getAsJsonArray();
-
     for(JsonElement updatedEntityElement : updatedEntities) {
       Object entity = crysonSerializer.deserialize(updatedEntityElement, entityClass(updatedEntityElement), replacedTemporaryIds);
       if (entity instanceof Restrictable) {
@@ -215,7 +219,7 @@ public class CrysonService {
       listenerNotificationBatch.entityUpdated(entity);
     }
 
-    for(Object refreshedPersistedEntity : refreshedPersistedEntities) {
+    for (Object refreshedPersistedEntity : refreshedPersistedEntities) {
       crysonRepository.refresh(refreshedPersistedEntity);
       listenerNotificationBatch.entityCreated(refreshedPersistedEntity);
     }
@@ -223,7 +227,29 @@ public class CrysonService {
     JsonObject responseJsonObject = new JsonObject();
     responseJsonObject.add("replacedTemporaryIds", crysonSerializer.serializeToTreeWithoutAugmentation(replacedTemporaryIds));
     responseJsonObject.add("persistedEntities", crysonSerializer.serializeToTree(refreshedPersistedEntities, Collections.<String>emptySet()));
-    return Response.ok(crysonSerializer.serializeTree(responseJsonObject)).build();
+
+    return responseJsonObject;
+  }
+
+  public JsonElement versionsForUpdatedEntities(JsonElement committedEntities) throws ClassNotFoundException {
+    JsonArray updatedEntities = committedEntities.getAsJsonObject().get("updatedEntities").getAsJsonArray();
+    List<Map<String, Object>> versions = new ArrayList<Map<String, Object>>();
+
+    for(JsonElement updatedEntityElement : updatedEntities) {
+      Long id = updatedEntityElement.getAsJsonObject().get("id").getAsLong();
+      String entityName = updatedEntityElement.getAsJsonObject().get("crysonEntityClass").getAsString();
+      Object entity = crysonRepository.findById(qualifiedEntityClassName(entityName), id, Collections.<String>emptySet());
+      Long versionNumber = reflectionHelper.getVersion(entity);
+      if (versionNumber != null) {
+        Map<String, Object> version = new HashMap<String, Object>();
+        version.put("crysonEntityClass", entityClass(updatedEntityElement).getSimpleName());
+        version.put("id", updatedEntityElement.getAsJsonObject().get("id").getAsLong());
+        version.put("version", versionNumber);
+        versions.add(version);
+      }
+    }
+
+    return crysonSerializer.serializeToTreeWithoutAugmentation(versions);
   }
 
   private Collection<JsonElement> topologicallySortPersistedEntities(JsonArray persistedEntities) {
