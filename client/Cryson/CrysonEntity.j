@@ -224,6 +224,8 @@ var NumberTypes = [CrysonMutableEntitySet setWithArray:["Long", "long", "Integer
     var actualAssociationClass = CPClassFromString(jsonObject.crysonEntityClass);
     resolvedAssociation = [[actualAssociationClass alloc] initWithJSObject:jsonObject session:session];
     [session attach:resolvedAssociation];
+  } else {
+    [resolvedAssociation populateCrysonObjectFromJSONObject:jsonObject];
   }
   return resolvedAssociation;
 }
