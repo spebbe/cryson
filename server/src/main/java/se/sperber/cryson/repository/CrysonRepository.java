@@ -27,6 +27,7 @@ import org.hibernate.criterion.MatchMode;
 import org.hibernate.criterion.Restrictions;
 import org.hibernate.transform.DistinctRootEntityResultTransformer;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PostFilter;
 import org.springframework.stereotype.Repository;
@@ -45,6 +46,9 @@ public class CrysonRepository {
 
   @Autowired
   private SessionFactory sessionFactory;
+
+  @Value("${cryson.validation.enabled}")
+  private boolean validationsEnabled;
 
   private ValidatorFactory validatorFactory = Validation.buildDefaultValidatorFactory();
 
@@ -114,7 +118,9 @@ public class CrysonRepository {
 
   @PostAuthorize("hasPermission(#entity, 'write')")
   public void persist(Object entity) {
-    throwConstraintViolations(validatorFactory.getValidator().validate(entity));
+    if (validationsEnabled) {
+      throwConstraintViolations(validatorFactory.getValidator().validate(entity));
+    }
     sessionFactory.getCurrentSession().save(entity);
     sessionFactory.getCurrentSession().flush();
     if (entity instanceof Restrictable) {
@@ -129,7 +135,9 @@ public class CrysonRepository {
 
   @PostAuthorize("hasPermission(#entity, 'write')")
   public void update(Object entity) {
-    throwConstraintViolations(validatorFactory.getValidator().validate(entity));
+    if (validationsEnabled) {
+      throwConstraintViolations(validatorFactory.getValidator().validate(entity));
+    }
     sessionFactory.getCurrentSession().update(entity);
     if (entity instanceof Restrictable) {
       sessionFactory.getCurrentSession().flush();
