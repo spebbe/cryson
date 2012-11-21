@@ -21,7 +21,9 @@ function compareNumbers(a,b){
 }
 
 var ArrayKVCOperationRegexp = /^(countOf(.+))|(objectIn(.+)AtIndex:)|(insertObject:in(.+)AtIndex:)|(removeObjectFrom(.+)AtIndex:)$/;
+var KVCValidationRegexp = /^(validate(.+):)$/;
 var NumberTypes = [CrysonMutableEntitySet setWithArray:["Long", "long", "Integer", "int", "Float", "float", "Double", "double"]];
+var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Float", "Double", "Date", "String"]];
 
 // TODO: Time for a cleanup again...:
 //       Extract forwardInvocation stuff from entity and mapwrapper into common base class.
@@ -246,8 +248,8 @@ var NumberTypes = [CrysonMutableEntitySet setWithArray:["Long", "long", "Integer
     return YES;
   }
 
-  var selectorString = CPStringFromSelector(aSelector);
-  var matches = selectorString.match(ArrayKVCOperationRegexp);
+  var selectorString = CPStringFromSelector(aSelector),
+      matches = selectorString.match(ArrayKVCOperationRegexp) || selectorString.match(KVCValidationRegexp);
   if (matches) {
     var key = _.last(_.compact(matches));
     var attributeName = key.charAt(0).toLowerCase() + key.slice(1);
@@ -264,12 +266,16 @@ var NumberTypes = [CrysonMutableEntitySet setWithArray:["Long", "long", "Integer
 }
 
 - (void)forwardInvocation:(CPInvocation)anInvocation {
-  var aSelector = [anInvocation selector];
-  var selectorString = CPStringFromSelector(aSelector);
+  var aSelector = [anInvocation selector],
+      selectorString = CPStringFromSelector(aSelector),
+      matches;
   if (selectorString.indexOf('set') == 0 && selectorString.indexOf(':')!=-1) {
     var unSettedSelectorString = selectorString.replace(/^set/, '').replace(':', '');
     var attributeName = unSettedSelectorString.charAt(0).toLowerCase() + unSettedSelectorString.slice(1);
     [anInvocation setReturnValue:[self _setAttribute:attributeName toValue:[anInvocation argumentAtIndex:2]]];
+  } else if (matches = selectorString.match(KVCValidationRegexp)) {
+    var attributeName = matches[2].charAt(0).toLowerCase() + matches[2].slice(1);
+    [anInvocation setReturnValue:[self _validateValue:[anInvocation argumentAtIndex:2] forAttribute:attributeName]];
   } else {
     var matches = selectorString.match(ArrayKVCOperationRegexp);
     if (matches) {
@@ -310,6 +316,43 @@ var NumberTypes = [CrysonMutableEntitySet setWithArray:["Long", "long", "Integer
   } else {
     [self doesNotRecognizeSelector:[anInvocation selector]];
   }
+}
+
+- (CPValidationResult)_validateValue:(id)attributeValue forAttribute:(CPString)attributeName
+{
+  var attributeType = [cachedDefinition objectForKey:attributeName];
+
+  if ((attributeValue == null || (attributeValue == "" && attributeType != "String")) &&
+      [self _attributeIsNullable:attributeType]) {
+    return [CPValidationResult validationResultWithValue:null valid:YES];
+  }
+
+  if ([NumberTypes containsObject:attributeType]) {
+    var coercedNumber = +attributeValue;
+    if (_.isNaN(coercedNumber)) {
+      return [CPValidationResult validationResultWithValue:crysonObject[attributeName] valid:YES];
+    } else {
+      return [CPValidationResult validationResultWithValue:coercedNumber valid:YES];
+    }
+  } else if (attributeType == "Date") {
+    if (attributeValue.isa == CPDate) {
+      return [CPValidationResult validationResultWithValue:attributeValue valid:YES];
+    }
+
+    try {
+      return [CPValidationResult validationResultWithValue:[[CPDate alloc] initWithString:attributeValue] valid:YES];
+    } catch (e) {
+      var date = [self _reverseCoerceValue:attributeName];
+      return [CPValidationResult validationResultWithValue:date valid:YES];
+    }
+  }
+
+  return [CPValidationResult validationResultWithValue:attributeValue valid:YES];
+}
+
+- (BOOL)_attributeIsNullable:(CPString)anAttributeType
+{
+  return [NullableTypes containsObject:anAttributeType] || [anAttributeType hasPrefix:@"UserType_"];
 }
 
 - (void)setValue:(id)aValue forKey:(CPString)aKey
@@ -375,8 +418,10 @@ var NumberTypes = [CrysonMutableEntitySet setWithArray:["Long", "long", "Integer
       return +attributeValue != 0;
     }
     return attributeValue != "false";
+  } else if (attributeType == "Date") {
+    return attributeValue == null ? null : [attributeValue description];
   } else {
-    // TODO: More coercions for Date, etc.
+    // TODO: More coercions...
   }
   return attributeValue;
 }
@@ -386,12 +431,26 @@ var NumberTypes = [CrysonMutableEntitySet setWithArray:["Long", "long", "Integer
   var foundAttribute = crysonUserTypes[attributeName];
   if (foundAttribute === undefined) {
     if (typeof([cachedDefinition objectForKey:attributeName]) == "string") {
-      foundAttribute = crysonObject[attributeName];
+      return [self _reverseCoerceValue:attributeName];
     } else {
       return [self materializeAssociation:attributeName];
     }
   }
   return foundAttribute;
+}
+
+- (id)_reverseCoerceValue:(CPString)attributeName
+{
+  var attributeType = [cachedDefinition objectForKey:attributeName],
+      attributeValue = crysonObject[attributeName];
+
+  if ([NumberTypes containsObject:attributeType]) {
+    return attributeValue;
+  } else if (attributeType == "Date") {
+    return attributeValue == null ? null : [[CPDate alloc] initWithString:attributeValue];
+  } else {
+    return attributeValue;
+  }
 }
 
 - (id)materializeAssociation:(CPString)associationName
