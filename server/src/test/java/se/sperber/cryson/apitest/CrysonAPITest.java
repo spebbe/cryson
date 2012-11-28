@@ -196,7 +196,7 @@ public class CrysonAPITest {
     PostMethod postMethod = new PostMethod("http://localhost:8789/cryson/commit");
     postMethod.setRequestEntity(new StringRequestEntity(commitJson, "application/json", "UTF-8"));
     assertEquals(HttpStatus.SC_OK, httpClient.executeMethod(postMethod));
-    assertEquals("{\"replacedTemporaryIds\":{},\"persistedEntities\":[],\"versions\":[]}", postMethod.getResponseBodyAsString());
+    assertEquals("{\"replacedTemporaryIds\":{},\"persistedEntities\":[],\"updatedEntities\":[{\"id\":" + childEntityId + ",\"parent\":null,\"crysonEntityClass\":\"CrysonTestChildEntity\"}],\"versions\":[]}", postMethod.getResponseBodyAsString());
   }
 
   @Test
@@ -208,7 +208,7 @@ public class CrysonAPITest {
     PostMethod postMethod = new PostMethod("http://localhost:8789/cryson/commit");
     postMethod.setRequestEntity(new StringRequestEntity(commitJson, "application/json", "UTF-8"));
     assertEquals(HttpStatus.SC_OK, httpClient.executeMethod(postMethod));
-    assertEquals("{\"replacedTemporaryIds\":{},\"persistedEntities\":[],\"versions\":[{\"id\":" + entityId + ",\"version\":1,\"crysonEntityClass\":\"CrysonTestEntity\"}]}", postMethod.getResponseBodyAsString());
+    assertEquals("{\"replacedTemporaryIds\":{},\"persistedEntities\":[],\"updatedEntities\":[{\"id\":" + entityId + ",\"name\":\"updated\",\"version\":1,\"crysonEntityClass\":\"CrysonTestEntity\",\"doubleId\":" + (entityId*2) + ",\"childEntities_cryson_ids\":[]}],\"versions\":[{\"id\":" + entityId + ",\"version\":1,\"crysonEntityClass\":\"CrysonTestEntity\"}]}", postMethod.getResponseBodyAsString());
   }
 
   @Test

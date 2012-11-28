@@ -610,6 +610,7 @@ If the commit failed, the following delegate method is instead called:
   [persistedEntities removeObjectsInArray:[context persistedEntities]];
   [self _replaceTemporaryIds:commitResult.replacedTemporaryIds forPersistedEntities:[context persistedEntities]];
   [self _refreshPersistedEntities:commitResult.persistedEntities];
+  [self _refreshPersistedEntities:commitResult.updatedEntities];
   [self _updateVersions:commitResult.versions];
   [[context updatedEntities] makeObjectsPerformSelector:@selector(virginize)];
   [deletedEntities removeObjectsInArray:[context deletedEntities]];

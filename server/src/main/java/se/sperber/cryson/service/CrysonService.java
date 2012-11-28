@@ -184,6 +184,7 @@ public class CrysonService {
 
   public JsonObject commit(JsonElement committedEntities, ListenerNotificationBatch listenerNotificationBatch) throws Exception {
     List<Object> refreshedPersistedEntities = new ArrayList<Object>();
+    List<Object> updatedPersistedEntities = new ArrayList<Object>();
 
     Map<Long, Long> replacedTemporaryIds = new HashMap<Long, Long>();
     JsonArray persistedEntities = committedEntities.getAsJsonObject().get("persistedEntities").getAsJsonArray();
@@ -216,6 +217,7 @@ public class CrysonService {
         sessionFactory.getCurrentSession().evict(originalEntity);
       }
       crysonRepository.update(entity);
+      updatedPersistedEntities.add(entity);
       listenerNotificationBatch.entityUpdated(entity);
     }
 
@@ -227,6 +229,7 @@ public class CrysonService {
     JsonObject responseJsonObject = new JsonObject();
     responseJsonObject.add("replacedTemporaryIds", crysonSerializer.serializeToTreeWithoutAugmentation(replacedTemporaryIds));
     responseJsonObject.add("persistedEntities", crysonSerializer.serializeToTree(refreshedPersistedEntities, Collections.<String>emptySet()));
+    responseJsonObject.add("updatedEntities", crysonSerializer.serializeToTree(updatedPersistedEntities, Collections.<String>emptySet()));
 
     return responseJsonObject;
   }
