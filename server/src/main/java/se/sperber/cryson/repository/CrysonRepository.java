@@ -134,15 +134,16 @@ public class CrysonRepository {
   }
 
   @PostAuthorize("hasPermission(#entity, 'write')")
-  public void update(Object entity) {
+  public Object update(Object entity) {
     if (validationsEnabled) {
       throwConstraintViolations(validatorFactory.getValidator().validate(entity));
     }
-    sessionFactory.getCurrentSession().update(entity);
+    Object mergedEntity = sessionFactory.getCurrentSession().merge(entity);
     if (entity instanceof Restrictable) {
       sessionFactory.getCurrentSession().flush();
-      sessionFactory.getCurrentSession().refresh(entity);
+      sessionFactory.getCurrentSession().refresh(mergedEntity);
     }
+    return mergedEntity;
   }
 
   @PostAuthorize("hasPermission(#entity, 'write')")

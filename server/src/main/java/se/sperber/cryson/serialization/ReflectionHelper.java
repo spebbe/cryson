@@ -35,7 +35,6 @@ import java.util.concurrent.ConcurrentMap;
 public class ReflectionHelper {
   
   private ConcurrentMap<Field, Boolean> lazyFieldCache = new ConcurrentHashMap<Field, Boolean>();
-  private ConcurrentHashMap<Class, List<Field>> versionFieldCache = new ConcurrentHashMap<Class, List<Field>>();
 
   public boolean isLazyField(Field field) {
     if (lazyFieldCache.containsKey(field)) {
@@ -144,41 +143,4 @@ public class ReflectionHelper {
     return capitalizedAttributeName.substring(0, 1).toLowerCase() + capitalizedAttributeName.substring(1);
   }
 
-  public Long getVersion(Object entity) {
-    try {
-      Field versionField = null;
-      if (versionFieldCache.containsKey(entity.getClass())) {
-        List<Field> versionFields = versionFieldCache.get(entity.getClass());
-        versionField = versionFields.isEmpty() ? null : versionFields.get(0);
-      } else {
-        for (Field field : getAllDeclaredFields(entity.getClass())) {
-          if (field.isAnnotationPresent(Version.class)) {
-            field.setAccessible(true);
-            versionFieldCache.put(entity.getClass(), Collections.singletonList(field));
-            versionField = field;
-            break;
-          }
-        }
-        if (versionField == null) {
-          versionFieldCache.put(entity.getClass(), Collections.<Field>emptyList());
-        }
-      }
-      if (versionField != null) {
-        return (Long)versionField.get(entity);
-      } else {
-        return null;
-      }
-    } catch(IllegalAccessException e) {
-      return null;
-    }
-  }
-
-  public String getVersionFieldName(Object entity) {
-    List<Field> versionFields = versionFieldCache.get(entity.getClass());
-    if (versionFields.isEmpty()) {
-      return null;
-    } else {
-      return versionFields.get(0).getName();
-    }
-  }
 }

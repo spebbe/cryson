@@ -29,6 +29,7 @@
   CPString errorMessage @accessors;
   CrysonEntity entityToRefresh @accessors;
   CPString namedQuery @accessors;
+  CPDictionary updatedEntitiesSnapshot @accessors;
 }
 
 + (CrysonSessionContext)contextWithDelegate:(id)aDelegate andEntityClass:(CLASS)anEntityClass

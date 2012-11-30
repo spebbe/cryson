@@ -131,12 +131,6 @@ public class CrysonService {
       }
     }
 
-    for (Field field : fields) {
-      if (field.isAnnotationPresent(Version.class)) {
-        entityDefinition.put("crysonVersionAttribute", field.getName());
-      }
-    }
-
     entityDefinition.put("crysonEntityClass", "String");
 
     return entityDefinition;
@@ -182,10 +176,20 @@ public class CrysonService {
     return Response.ok(crysonSerializer.serialize(entity)).build();
   }
 
-  public JsonObject commit(JsonElement committedEntities, ListenerNotificationBatch listenerNotificationBatch) throws Exception {
-    List<Object> refreshedPersistedEntities = new ArrayList<Object>();
-    List<Object> updatedPersistedEntities = new ArrayList<Object>();
 
+  public void validatePermissions(JsonElement committedEntities) throws Exception {
+    JsonArray updatedEntities = committedEntities.getAsJsonObject().get("updatedEntities").getAsJsonArray();
+    for(JsonElement updatedEntityElement : updatedEntities) {
+      Object entity = crysonSerializer.deserialize(updatedEntityElement, entityClass(updatedEntityElement), new HashMap<Long, Long>());
+      if (entity instanceof Restrictable) {
+        Object originalEntity = crysonRepository.ensureReadableAndWritable(qualifiedEntityClassName(updatedEntityElement.getAsJsonObject().get("crysonEntityClass").getAsString()),
+                updatedEntityElement.getAsJsonObject().get("id").getAsLong());
+        sessionFactory.getCurrentSession().evict(originalEntity);
+      }
+    }
+  }
+
+  public JsonObject commit(JsonElement committedEntities, ListenerNotificationBatch listenerNotificationBatch, List<Object> refreshedPersistedEntities, List<Object> updatedPersistedEntities) throws Exception {
     Map<Long, Long> replacedTemporaryIds = new HashMap<Long, Long>();
     JsonArray persistedEntities = committedEntities.getAsJsonObject().get("persistedEntities").getAsJsonArray();
     Collection<JsonElement> sortedPersistedEntities = topologicallySortPersistedEntities(persistedEntities);
@@ -211,48 +215,29 @@ public class CrysonService {
     JsonArray updatedEntities = committedEntities.getAsJsonObject().get("updatedEntities").getAsJsonArray();
     for(JsonElement updatedEntityElement : updatedEntities) {
       Object entity = crysonSerializer.deserialize(updatedEntityElement, entityClass(updatedEntityElement), replacedTemporaryIds);
-      if (entity instanceof Restrictable) {
-        Object originalEntity = crysonRepository.ensureReadableAndWritable(qualifiedEntityClassName(updatedEntityElement.getAsJsonObject().get("crysonEntityClass").getAsString()),
-                updatedEntityElement.getAsJsonObject().get("id").getAsLong());
-        sessionFactory.getCurrentSession().evict(originalEntity);
-      }
-      crysonRepository.update(entity);
-      updatedPersistedEntities.add(entity);
-      listenerNotificationBatch.entityUpdated(entity);
-    }
-
-    for (Object refreshedPersistedEntity : refreshedPersistedEntities) {
-      crysonRepository.refresh(refreshedPersistedEntity);
-      listenerNotificationBatch.entityCreated(refreshedPersistedEntity);
+      Object updatedEntity = crysonRepository.update(entity);
+      updatedPersistedEntities.add(updatedEntity);
     }
 
     JsonObject responseJsonObject = new JsonObject();
     responseJsonObject.add("replacedTemporaryIds", crysonSerializer.serializeToTreeWithoutAugmentation(replacedTemporaryIds));
-    responseJsonObject.add("persistedEntities", crysonSerializer.serializeToTree(refreshedPersistedEntities, Collections.<String>emptySet()));
-    responseJsonObject.add("updatedEntities", crysonSerializer.serializeToTree(updatedPersistedEntities, Collections.<String>emptySet()));
 
     return responseJsonObject;
   }
-
-  public JsonElement versionsForUpdatedEntities(JsonElement committedEntities) throws ClassNotFoundException {
-    JsonArray updatedEntities = committedEntities.getAsJsonObject().get("updatedEntities").getAsJsonArray();
-    List<Map<String, Object>> versions = new ArrayList<Map<String, Object>>();
-
-    for(JsonElement updatedEntityElement : updatedEntities) {
-      Long id = updatedEntityElement.getAsJsonObject().get("id").getAsLong();
-      String entityName = updatedEntityElement.getAsJsonObject().get("crysonEntityClass").getAsString();
-      Object entity = crysonRepository.findById(qualifiedEntityClassName(entityName), id, Collections.<String>emptySet());
-      Long versionNumber = reflectionHelper.getVersion(entity);
-      if (versionNumber != null) {
-        Map<String, Object> version = new HashMap<String, Object>();
-        version.put("crysonEntityClass", entityClass(updatedEntityElement).getSimpleName());
-        version.put("id", updatedEntityElement.getAsJsonObject().get("id").getAsLong());
-        version.put("version", versionNumber);
-        versions.add(version);
-      }
+  
+  public void refreshEntities(JsonObject responseJsonObject, ListenerNotificationBatch listenerNotificationBatch, List<Object> persistedEntities, List<Object> updatedEntities) {
+    for (Object persistedEntity : persistedEntities) {
+      crysonRepository.refresh(persistedEntity);
+      listenerNotificationBatch.entityCreated(persistedEntity);
     }
 
-    return crysonSerializer.serializeToTreeWithoutAugmentation(versions);
+    for (Object updatedEntity : updatedEntities) {
+      crysonRepository.refresh(updatedEntity);
+      listenerNotificationBatch.entityUpdated(updatedEntity);
+    }
+
+    responseJsonObject.add("persistedEntities", crysonSerializer.serializeToTree(persistedEntities, Collections.<String>emptySet()));
+    responseJsonObject.add("updatedEntities", crysonSerializer.serializeToTree(updatedEntities, Collections.<String>emptySet()));
   }
 
   private Collection<JsonElement> topologicallySortPersistedEntities(JsonArray persistedEntities) {

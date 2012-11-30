@@ -161,8 +161,11 @@ public class CrysonFrontendService {
     try {
       ListenerNotificationBatch listenerNotificationBatch = new ListenerNotificationBatch(uriInfo, httpHeaders);
       JsonElement committedEntities = crysonSerializer.parse(json);
-      JsonObject responseJsonObject = crysonService.commit(committedEntities, listenerNotificationBatch);
-      responseJsonObject.add("versions", crysonService.versionsForUpdatedEntities(committedEntities));
+      crysonService.validatePermissions(committedEntities);
+      List<Object> persistedEntites = new ArrayList<Object>();
+      List<Object> updatedEntities = new ArrayList<Object>();
+      JsonObject responseJsonObject = crysonService.commit(committedEntities, listenerNotificationBatch, persistedEntites, updatedEntities);
+      crysonService.refreshEntities(responseJsonObject, listenerNotificationBatch, persistedEntites, updatedEntities);
       Response response = Response.ok(crysonSerializer.serializeTree(responseJsonObject)).build();
 
       notifyCommit(listenerNotificationBatch);

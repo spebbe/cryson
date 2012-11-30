@@ -528,6 +528,7 @@ If the commit failed, the following delegate method is instead called:
     [context setUpdatedEntities:requestedUpdatedEntities];
     [context setDeletedEntities:requestedDeletedEntities];
     [context setPersistedEntities:requestedPersistedEntities];
+    [context setUpdatedEntitiesSnapshot:[self _indexUpdatedEntitiesSnapshot:requestedUpdatedEntityObjects]];
     [self startLoadOperationForDelegate:aDelegate];
     [remoteService post:commitRequest
                      to:url
@@ -538,6 +539,17 @@ If the commit failed, the following delegate method is instead called:
   } else {
     [aDelegate crysonSessionCommitted:self];
   }
+}
+
+- (CPDictionary)_indexUpdatedEntitiesSnapshot:(CPArray)updatedEntitySnapshots
+{
+  var result = [[CPMutableDictionary alloc] init];
+  for(var ix = 0;ix < [updatedEntitySnapshots count];ix++) {
+    var updatedEntitySnapshot = [updatedEntitySnapshots objectAtIndex:ix];
+    var entityKey = updatedEntitySnapshot.crysonEntityClass + "_" + updatedEntitySnapshot.id;
+    [result setObject:updatedEntitySnapshot forKey:entityKey];
+  }
+  return result;
 }
 
 /*!
@@ -610,9 +622,7 @@ If the commit failed, the following delegate method is instead called:
   [persistedEntities removeObjectsInArray:[context persistedEntities]];
   [self _replaceTemporaryIds:commitResult.replacedTemporaryIds forPersistedEntities:[context persistedEntities]];
   [self _refreshPersistedEntities:commitResult.persistedEntities];
-  [self _refreshPersistedEntities:commitResult.updatedEntities];
-  [self _updateVersions:commitResult.versions];
-  [[context updatedEntities] makeObjectsPerformSelector:@selector(virginize)];
+  [self _refreshUpdatedEntities:commitResult.updatedEntities withSnapshot:[context updatedEntitiesSnapshot] andUpdatedEntities:[context updatedEntities]];
   [deletedEntities removeObjectsInArray:[context deletedEntities]];
   [[context delegate] crysonSessionCommitted:self];
 }
@@ -639,14 +649,40 @@ If the commit failed, the following delegate method is instead called:
   }
 }
 
-- (void)_updateVersions:(CPArray)versions
+- (void)_refreshUpdatedEntities:(CPArray)newSnapshots withSnapshot:(CPDictionary)oldSnapshots andUpdatedEntities:(CPArray)updatedEntities
 {
-  for(var ix = 0;ix < [versions count];ix++) {
-    var version = [versions objectAtIndex:ix],
-        entity = [self findCachedByClass:CPClassFromString(version.crysonEntityClass) andId:version.id],
-        versionFieldName = [crysonDefinitionRepository versionFieldNameForClass:[entity class]];
-    [entity setValue:version.version forKey:versionFieldName];
+  var nonTamperedEntities = [[CrysonMutableEntitySet alloc] init];
+  for(var ix = 0;ix < [updatedEntities count];ix++) {
+    var updatedEntity = [updatedEntities objectAtIndex:ix];
+    var oldSnapshot = [oldSnapshots objectForKey:[updatedEntity className] + "_" + [updatedEntity id]];
+    if (_.isEqual([updatedEntity toJSObject], oldSnapshot)) {
+      [nonTamperedEntities addObject:updatedEntity];
+    }
   }
+
+  for(var ix = 0;ix < [newSnapshots count];ix++) {
+    var newSnapshot = [newSnapshots objectAtIndex:ix];
+    var entityKey = newSnapshot.crysonEntityClass + "_" + newSnapshot.id;
+    var oldSnapshot = [oldSnapshots objectForKey:entityKey];
+    var entityClass = CPClassFromString(newSnapshot.crysonEntityClass);
+    var definition = [self findDefinitionForClass:entityClass];
+    var checkableTypes = {"String":YES, "Long":YES, "Integer":YES, "Boolean":YES, "int":YES, "long":YES, "boolean":YES, "Float":YES, "float":YES, "Double":YES, "double":YES, "Date":YES};
+    var attributeNames = [definition allKeys];
+    var updatedEntity = [self findCachedByClass:entityClass andId:newSnapshot.id];
+    for(var attributeNameIndex in attributeNames) {
+      var attributeName = attributeNames[attributeNameIndex];
+      var attributeType = [definition objectForKey:attributeName]; 
+      if (checkableTypes[attributeType] == YES) {
+        if (newSnapshot[attributeName] != oldSnapshot[attributeName]) {
+          [updatedEntity willChangeValueForKey:attributeName];
+          updatedEntity.crysonObject[attributeName] = newSnapshot[attributeName];
+          [updatedEntity didChangeValueForKey:attributeName];
+        }
+      }
+    }
+  }
+
+  [[nonTamperedEntities allObjects] makeObjectsPerformSelector:@selector(virginize)];
 }
 
 - (void)commitFailed:(CPString)errorString statusCode:(CPNumber)statusCode context:(CrysonSessionContext)context
