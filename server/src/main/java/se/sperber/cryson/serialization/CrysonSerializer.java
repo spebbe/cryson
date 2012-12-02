@@ -186,6 +186,14 @@ public class CrysonSerializer {
     return subAssociations;
   }
 
+  public String getEntityClassName(Object entity) {
+    if (entity instanceof HibernateProxy) {
+      return ((HibernateProxy)entity).getHibernateLazyInitializer().getPersistentClass().getName();
+    } else {
+      return entity.getClass().getName();
+    }
+  }
+
   public Long getPrimaryKey(Object entity) {
     try {
       if (entity instanceof HibernateProxy) {

@@ -39,7 +39,6 @@ import se.sperber.cryson.serialization.ReflectionHelper;
 
 import javax.annotation.PostConstruct;
 import javax.persistence.Entity;
-import javax.persistence.Version;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import java.lang.reflect.Field;
@@ -226,18 +225,23 @@ public class CrysonService {
   }
   
   public void refreshEntities(JsonObject responseJsonObject, ListenerNotificationBatch listenerNotificationBatch, List<Object> persistedEntities, List<Object> updatedEntities) {
+    List<Object> refreshedPersistedEntities = new ArrayList<Object>(persistedEntities.size());
+    List<Object> refreshedUpdatedEntities = new ArrayList<Object>(updatedEntities.size());
+
     for (Object persistedEntity : persistedEntities) {
-      crysonRepository.refresh(persistedEntity);
-      listenerNotificationBatch.entityCreated(persistedEntity);
+      Object refreshedPersistedEntity = crysonRepository.findById(crysonSerializer.getEntityClassName(persistedEntity), crysonSerializer.getPrimaryKey(persistedEntity), Collections.EMPTY_SET);
+      refreshedPersistedEntities.add(refreshedPersistedEntity);
+      listenerNotificationBatch.entityCreated(refreshedPersistedEntity);
     }
 
     for (Object updatedEntity : updatedEntities) {
-      crysonRepository.refresh(updatedEntity);
-      listenerNotificationBatch.entityUpdated(updatedEntity);
+      Object refreshedUpdatedEntity = crysonRepository.findById(crysonSerializer.getEntityClassName(updatedEntity), crysonSerializer.getPrimaryKey(updatedEntity), Collections.EMPTY_SET);
+      refreshedUpdatedEntities.add(refreshedUpdatedEntity);
+      listenerNotificationBatch.entityUpdated(refreshedUpdatedEntity);
     }
 
-    responseJsonObject.add("persistedEntities", crysonSerializer.serializeToTree(persistedEntities, Collections.<String>emptySet()));
-    responseJsonObject.add("updatedEntities", crysonSerializer.serializeToTree(updatedEntities, Collections.<String>emptySet()));
+    responseJsonObject.add("persistedEntities", crysonSerializer.serializeToTree(refreshedPersistedEntities, Collections.<String>emptySet()));
+    responseJsonObject.add("updatedEntities", crysonSerializer.serializeToTree(refreshedUpdatedEntities, Collections.<String>emptySet()));
   }
 
   private Collection<JsonElement> topologicallySortPersistedEntities(JsonArray persistedEntities) {
