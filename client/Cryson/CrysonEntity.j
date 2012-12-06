@@ -322,7 +322,7 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
 {
   var attributeType = [cachedDefinition objectForKey:attributeName];
 
-  if ((attributeValue == null || (attributeValue == "" && attributeType != "String")) &&
+  if ((attributeValue == null || (attributeValue === "" && attributeType != "String")) &&
       [self _attributeIsNullable:attributeType]) {
     return [CPValidationResult validationResultWithValue:null valid:YES];
   }
