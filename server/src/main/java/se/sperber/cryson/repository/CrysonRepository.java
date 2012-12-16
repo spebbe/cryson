@@ -133,7 +133,7 @@ public class CrysonRepository {
     sessionFactory.getCurrentSession().refresh(entity);
   }
 
-  @PostAuthorize("hasPermission(#entity, 'write')")
+  @PostAuthorize("hasPermission(returnObject, 'write')")
   public Object update(Object entity) {
     if (validationsEnabled) {
       throwConstraintViolations(validatorFactory.getValidator().validate(entity));
