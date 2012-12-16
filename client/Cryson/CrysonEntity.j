@@ -137,6 +137,7 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
 
 - (void)setAttributesFromJSObject:(JSObject)jsonObject
 {
+  crysonEntityAsyncProxy = nil;
   crysonAssociations = {};
   cachedDefinition = [self definition];
   [self populateCrysonObjectFromJSONObject:jsonObject];
