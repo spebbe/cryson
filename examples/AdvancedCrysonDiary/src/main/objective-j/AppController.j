@@ -99,7 +99,7 @@
   [entry setUserName:userName];
 
   [entryContent setText:@""];
-  [entryContent setEntry:entry];
+  [entryContent setEntries:[entry]];
 
   [entriesArrayController addObject:entry];
 }

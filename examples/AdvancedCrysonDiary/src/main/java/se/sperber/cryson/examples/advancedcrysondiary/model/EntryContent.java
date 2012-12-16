@@ -5,6 +5,7 @@ import org.springframework.security.core.Authentication;
 import se.sperber.cryson.security.Restrictable;
 
 import javax.persistence.*;
+import java.util.Set;
 
 @Entity
 @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
@@ -13,23 +14,25 @@ public class EntryContent extends BaseEntity implements Restrictable {
   @Lob @Column(length = Integer.MAX_VALUE)
   private String text;
 
-  @OneToOne(fetch = FetchType.LAZY, mappedBy = "content", optional = false)
+  @OneToMany(fetch = FetchType.LAZY, mappedBy = "content")
   @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
-  private Entry entry;
+  private Set<Entry> entries;
 
+  private Entry getEntry() {
+    if (entries == null || entries.size() == 0) {
+      return null;
+    }
+    return entries.iterator().next();
+  }
 
   public boolean isReadableBy(Authentication authentication) {
-    if (entry == null) {
-      return true;
-    }
-    return entry.isReadableBy(authentication);
+    Entry entry = getEntry();
+    return entry == null || entry.isReadableBy(authentication);
   }
 
   public boolean isWritableBy(Authentication authentication) {
-    if (entry == null) {
-      return true;
-    }
-    return entry.isWritableBy(authentication);
+    Entry entry = getEntry();
+    return entry == null || entry.isWritableBy(authentication);
   }
 
 }

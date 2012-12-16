@@ -12,7 +12,7 @@ public class EntryContent {
   @Lob @Column(length = Integer.MAX_VALUE)
   private String text;
 
-  @OneToOne(fetch = FetchType.LAZY)
+  @ManyToOne(fetch = FetchType.LAZY)
   private Entry entry;
 
 }

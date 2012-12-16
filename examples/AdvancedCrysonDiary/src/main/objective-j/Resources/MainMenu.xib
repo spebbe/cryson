@@ -2,13 +2,13 @@
 <archive type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="7.10">
 	<data>
 		<int key="IBDocument.SystemTarget">1050</int>
-		<string key="IBDocument.SystemVersion">12A269</string>
-		<string key="IBDocument.InterfaceBuilderVersion">2549</string>
-		<string key="IBDocument.AppKitVersion">1187</string>
-		<string key="IBDocument.HIToolboxVersion">624.00</string>
+		<string key="IBDocument.SystemVersion">12C60</string>
+		<string key="IBDocument.InterfaceBuilderVersion">2844</string>
+		<string key="IBDocument.AppKitVersion">1187.34</string>
+		<string key="IBDocument.HIToolboxVersion">625.00</string>
 		<object class="NSMutableDictionary" key="IBDocument.PluginVersions">
 			<string key="NS.key.0">com.apple.InterfaceBuilder.CocoaPlugin</string>
-			<string key="NS.object.0">2549</string>
+			<string key="NS.object.0">2844</string>
 		</object>
 		<object class="NSArray" key="IBDocument.IntegratedClassDependencies">
 			<bool key="EncodedWithXMLCoder">YES</bool>
@@ -992,15 +992,15 @@
 				</object>
 				<object class="IBConnectionRecord">
 					<object class="IBBindingConnection" key="connection">
-						<string key="label">value: selection.async.content.text</string>
+						<string key="label">value: content.async.content.text</string>
 						<reference key="source" ref="794447634"/>
 						<reference key="destination" ref="836504408"/>
 						<object class="NSNibBindingConnector" key="connector">
 							<reference key="NSSource" ref="794447634"/>
 							<reference key="NSDestination" ref="836504408"/>
-							<string key="NSLabel">value: selection.async.content.text</string>
+							<string key="NSLabel">value: content.async.content.text</string>
 							<string key="NSBinding">value</string>
-							<string key="NSKeyPath">selection.async.content.text</string>
+							<string key="NSKeyPath">content.async.content.text</string>
 							<object class="NSDictionary" key="NSOptions">
 								<bool key="EncodedWithXMLCoder">YES</bool>
 								<object class="NSArray" key="dict.sortedKeys">
@@ -1017,23 +1017,23 @@
 							<int key="NSNibBindingConnectorVersion">2</int>
 						</object>
 					</object>
-					<int key="connectionID">560</int>
+					<int key="connectionID">564</int>
 				</object>
 				<object class="IBConnectionRecord">
 					<object class="IBBindingConnection" key="connection">
-						<string key="label">value: selection.title</string>
+						<string key="label">value: content.title</string>
 						<reference key="source" ref="151196198"/>
 						<reference key="destination" ref="836504408"/>
 						<object class="NSNibBindingConnector" key="connector">
 							<reference key="NSSource" ref="151196198"/>
 							<reference key="NSDestination" ref="836504408"/>
-							<string key="NSLabel">value: selection.title</string>
+							<string key="NSLabel">value: content.title</string>
 							<string key="NSBinding">value</string>
-							<string key="NSKeyPath">selection.title</string>
+							<string key="NSKeyPath">content.title</string>
 							<int key="NSNibBindingConnectorVersion">2</int>
 						</object>
 					</object>
-					<int key="connectionID">509</int>
+					<int key="connectionID">565</int>
 				</object>
 				<object class="IBConnectionRecord">
 					<object class="IBBindingConnection" key="connection">
@@ -1572,7 +1572,7 @@
 				<reference key="dict.values" ref="0"/>
 			</object>
 			<nil key="sourceID"/>
-			<int key="maxID">563</int>
+			<int key="maxID">565</int>
 		</object>
 		<object class="IBClassDescriber" key="IBDocument.Classes">
 			<object class="NSMutableArray" key="referencedPartialClassDescriptions">

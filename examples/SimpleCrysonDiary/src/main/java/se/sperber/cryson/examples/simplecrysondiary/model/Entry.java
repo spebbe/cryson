@@ -13,8 +13,8 @@ public class Entry {
 
   private String title;
 
-  @OneToOne(fetch = FetchType.EAGER, mappedBy = "entry")
-  private EntryContent content;
+  @OneToMany(fetch = FetchType.EAGER, mappedBy = "entry")
+  private Set<EntryContent> contents;
 
   @OneToMany(fetch = FetchType.EAGER, mappedBy = "entry")
   private Set<EntryComment> comments;

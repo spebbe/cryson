@@ -25,16 +25,10 @@ public class EntryComment extends BaseEntity implements Restrictable {
 
 
   public boolean isReadableBy(Authentication authentication) {
-    if (entry == null) {
-      return true;
-    }
-    return entry.isReadableBy(authentication);
+    return entry == null || entry.isReadableBy(authentication);
   }
 
   public boolean isWritableBy(Authentication authentication) {
-    if (entry == null) {
-      return true;
-    }
-    return entry.isWritableBy(authentication);
+    return entry == null || entry.isWritableBy(authentication);
   }
 }
