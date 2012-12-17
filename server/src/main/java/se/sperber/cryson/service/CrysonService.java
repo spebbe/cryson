@@ -281,7 +281,7 @@ public class CrysonService {
     for(Class<?> klazz : classes) {
       List<Class<?>> owners = new ArrayList<Class<?>>();
       for(Class<?> otherKlazz : classes) {
-        if (classOwnerships.get(otherKlazz).contains(klazz)) {
+        if (isOwnedBy(classOwnerships, klazz, otherKlazz)) {
           owners.add(otherKlazz);
         }
       }
@@ -303,6 +303,17 @@ public class CrysonService {
     }
 
     return classInsertionOrder;
+  }
+
+  private boolean isOwnedBy(Map<Class<?>, List<Class<?>>> classOwnerships, Class<?> klazz, Class<?> otherKlazz) {
+    Class currentKlazz = klazz;
+    while(currentKlazz != Object.class) {
+      if (classOwnerships.get(otherKlazz).contains(currentKlazz)) {
+        return true;
+      }
+      currentKlazz = currentKlazz.getSuperclass();
+    }
+    return false;
   }
 
   private void topologicalSort(Class<?> klazz, Map<Class<?>, List<Class<?>>> classOwners, List<Class<?>> result, Set<Class<?>> visitedClasses) {

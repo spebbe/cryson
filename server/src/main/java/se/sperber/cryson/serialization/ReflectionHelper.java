@@ -73,7 +73,7 @@ public class ReflectionHelper {
             result.put(field, targetClass);
           }
         } else if (field.isAnnotationPresent(ManyToOne.class)) {
-          if (!ownedAssociationFields(targetClass).values().contains(klazz)) {
+          if (!targetClassOwnsClass(targetClass, klazz)) {
             result.put(field, targetClass);
           }
         } else if (field.isAnnotationPresent(OneToMany.class)) {
@@ -89,6 +89,18 @@ public class ReflectionHelper {
     }
 
     return result;
+  }
+
+  private boolean targetClassOwnsClass(Class<?> targetClass, Class<?> klazz) {
+    Collection<Class<?>> ownedAssociationFields = ownedAssociationFields(targetClass).values();
+    Class currentKlazz = klazz;
+    while(currentKlazz != Object.class) {
+      if (ownedAssociationFields.contains(currentKlazz)) {
+        return true;
+      }
+      currentKlazz = currentKlazz.getSuperclass();
+    }
+    return false;
   }
 
   private Class<?> getAssociationTargetClass(Field field) {
