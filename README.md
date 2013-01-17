@@ -23,7 +23,7 @@ Cryson is open source, licensed under the [Apache 2.0](http://www.apache.org/lic
 
 #### Credits
 
-Cryson was written by [Bj&ouml;rn Sperber](mailto:cryson@sperber.se), with contributions by Johan Stille and Arsenij Vodjanov. The development of Cryson has benefited greatly from the design suggestions, beta testing and production usage of our colleagues and friends at [Delta Projects](http://www.deltaprojects.se).
+Cryson was written by [Bj&ouml;rn Sperber](mailto:cryson@sperber.se), with contributions by Johan Stille, Arsenij Vodjanov and Martin Gerholm. The development of Cryson has benefited greatly from the design suggestions, beta testing and production usage of our colleagues and friends at [Delta Projects](http://www.deltaprojects.se).
 
 #### Disclaimer
 

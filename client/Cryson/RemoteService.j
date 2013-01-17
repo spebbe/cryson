@@ -93,12 +93,24 @@ var retryHandler = nil;
 
 @implementation RemoteService : CPObject
 {
+  CPDictionary customHeaders;
+}
+
+- (void)setCustomHeaders:(CPDictionary)someCustomHeaders
+{
+  customHeaders = someCustomHeaders;
+}
+
+- (void)setCustomHeader:(CPString)key withValue:(CPString)value
+{
+  [customHeaders setValue:value forKey:key];
 }
 
 + (RemoteService)sharedInstance
 {
   if (sharedInstance == nil) {
     sharedInstance = [[RemoteService alloc] init];
+    [sharedInstance setCustomHeaders:[CPDictionary dictionary]];
   }
   return sharedInstance;
 }
@@ -148,7 +160,7 @@ var retryHandler = nil;
   [RemoteService get:requestUrl delegate:delegate onSuccess:action onError:nil context:nil];
 }
 
-+ (void)post:(JSObject)object to:(CPString)requestUrl delegate:(id)delegate onSuccess:(SEL)action onError:(SEL)errorAction context:(id)callerContext
++ (void)post:(JSObject)object to:(CPString)requestUrl delegate:(id)delegate onSuccess:(SEL)action onError:(SEL)errorAction context:(id)callerContext customHeaders:(CPDictionary)customHeaders
 {
   var context = [[RemoteServiceContext alloc] init];
   [context setDelegate:delegate];
@@ -159,12 +171,17 @@ var retryHandler = nil;
   [context setRequestUrl:requestUrl];
   [context setRequestObject:object];
   [context setRetryCount:0];
-  [RequestHelper asyncPost:requestUrl object:object context:context delegate:context];
+  [RequestHelper asyncPost:requestUrl object:object context:context delegate:context customHeaders:customHeaders];
+}
+
++ (void)post:(JSObject)object to:(CPString)requestUrl delegate:(id)delegate onSuccess:(SEL)action onError:(SEL)errorAction context:(id)callerContext
+{
+  [RemoteService post:object to:requestUrl delegate:delegate onSuccess:action onError:errorAction context:callerContext customHeaders:nil];
 }
 
 - (void)post:(JSObject)object to:(CPString)requestUrl delegate:(id)delegate onSuccess:(SEL)action onError:(SEL)errorAction context:(id)callerContext
 {
-  [RemoteService post:object to:requestUrl delegate:delegate onSuccess:action onError:errorAction context:callerContext];
+  [RemoteService post:object to:requestUrl delegate:delegate onSuccess:action onError:errorAction context:callerContext customHeaders:customHeaders];
 }
 
 @end

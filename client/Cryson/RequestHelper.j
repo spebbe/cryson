@@ -19,7 +19,7 @@
 @import <Foundation/Foundation.j>
 @import "ContextualConnection.j"
 
-// Perform synchronous or asynchronous HTTP GET/POST requests against server.
+// Perform synchronous or asynchronous HTTP GET/POST/PUT/DELETE requests against server.
 // Results and POST bodies are expected to be JSON.
 
 @implementation RequestHelper : CPObject
@@ -53,7 +53,12 @@
 
 + (void)asyncPost:(CPString)url object:(JSObject)object context:(id)context delegate:(id)delegate
 {
-  [self asyncRequestWithVerb:"POST" url:url object:object context:context delegate:delegate];
+  [self asyncPost:url object:object context:context delegate:delegate customHeaders:nil];
+}
+
++ (void)asyncPost:(CPString)url object:(JSObject)object context:(id)context delegate:(id)delegate customHeaders:(CPDictionary)customHeaders
+{
+  [self asyncRequestWithVerb:"POST" url:url object:object context:context delegate:delegate customHeaders:customHeaders];
 }
 
 + (void)asyncPut:(CPString)url object:(JSObject)object context:(id)context delegate:(id)delegate
@@ -89,10 +94,24 @@
 
 + (void)asyncRequestWithVerb:(CPString)verb url:(CPString)url object:(JSObject)object context:(id)context delegate:(id)delegate
 {
+  [self asyncRequestWithVerb:verb url:url object:object context:context delegate:delegate customHeaders:nil];
+}
+
++ (void)asyncRequestWithVerb:(CPString)verb url:(CPString)url object:(JSObject)object context:(id)context delegate:(id)delegate customHeaders:(CPDictionary) customHeaders
+{
   var request = [CPURLRequest requestWithURL:url];
   [request setHTTPMethod:verb];
   [request setValue:"application/json" forHTTPHeaderField:"Accept"];
   [request setValue:"application/json" forHTTPHeaderField:"Content-Type"];
+  if(customHeaders) {
+    var keys = [customHeaders allKeys];
+    for(var i = 0; i < [keys count]; i++) {
+      var key = [keys objectAtIndex:i];
+      var value = [customHeaders valueForKey:key];
+      [request setValue:value forHTTPHeaderField:key];
+    }
+
+  }
   if (object) {
     [request setHTTPBody:JSON.stringify(object)];
   }
