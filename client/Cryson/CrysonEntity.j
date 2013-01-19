@@ -539,6 +539,8 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
     result[attributeName + "_cryson_usertype"] = [crysonUserTypes[attributeName] toJSObject];
   }
 
+  result["crysonEntityClass"] = [self className];
+
   return result;
 }
 

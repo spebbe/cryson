@@ -124,6 +124,55 @@ if (typeof(_) == 'undefined') {
   [OJAssert assert:@"validation failed" equals:[validationFailure message]];
 }
 
+- (void)testPersistEntityThatIsModifiedClientSideDuringCommitOperation
+{
+  var testEntity = [self givenTestEntity];
+  [testEntity setName:@"committed"];
+
+  var remoteService = moq();
+  var postCallback = function(args /*object, requestUrl, delegate, onSuccess, onError, context*/) {
+    [testEntity setName:@"updatedDuringCommitOperation"];
+    var commitResult = {"replacedTemporaryIds":{"-1": 14}, "persistedEntities":[{"crysonEntityClass":"TestEntity","id":14,"name":"committed"}], "updatedEntities":[], "deletedEntities":[]};
+    [args[2] performSelector:args[3] withObject:commitResult withObject:args[5]];
+  };
+  [remoteService selector:@selector(post:to:delegate:onSuccess:onError:context:) callback:postCallback];
+  var delegateMock = moq();
+  var session = [self givenCrysonSessionWithRemoteService:remoteService andDelegate:delegateMock];
+  [session setCrysonDefinitionRepository:[self givenCrysonDefinitionRepository]];
+  [session persist:testEntity];
+  [OJAssert assert:-1 equals:[testEntity id]];
+  [OJAssert assert:@"committed" equals:[testEntity name]];  
+  [OJAssert assertTrue:[testEntity dirty]];
+  [session commit];
+  [OJAssert assert:14 equals:[testEntity id]];
+  [OJAssert assert:@"updatedDuringCommitOperation" equals:[testEntity name]];
+  [OJAssert assertTrue:[testEntity dirty]];
+}
+
+- (void)testPersistEntityThatIsModifiedServerSideDuringCommitOperation
+{
+  var testEntity = [self givenTestEntity];
+  [testEntity setName:@"committed"];
+
+  var remoteService = moq();
+  var postCallback = function(args /*object, requestUrl, delegate, onSuccess, onError, context*/) {
+    var commitResult = {"replacedTemporaryIds":{"-1": 14}, "persistedEntities":[{"crysonEntityClass":"TestEntity","id":14,"name":"updatedOnServer"}], "updatedEntities":[], "deletedEntities":[]};
+    [args[2] performSelector:args[3] withObject:commitResult withObject:args[5]];
+  };
+  [remoteService selector:@selector(post:to:delegate:onSuccess:onError:context:) callback:postCallback];
+  var delegateMock = moq();
+  var session = [self givenCrysonSessionWithRemoteService:remoteService andDelegate:delegateMock];
+  [session setCrysonDefinitionRepository:[self givenCrysonDefinitionRepository]];
+  [session persist:testEntity];
+  [OJAssert assert:-1 equals:[testEntity id]];
+  [OJAssert assert:@"committed" equals:[testEntity name]];  
+  [OJAssert assertTrue:[testEntity dirty]];
+  [session commit];
+  [OJAssert assert:14 equals:[testEntity id]];
+  [OJAssert assert:@"updatedOnServer" equals:[testEntity name]];
+  [OJAssert assertFalse:[testEntity dirty]];
+}
+
 @end
 
 @implementation CrysonSessionTest (Helpers)
@@ -173,7 +222,9 @@ if (typeof(_) == 'undefined') {
 - (CPDictionary)givenDefinitionMock
 {
   var definitionMock = moq();
-  [definitionMock selector:@selector(objectForKey:) returns:"String"];
+  [definitionMock selector:@selector(objectForKey:) returns:@"Long" arguments:[@"id"]];
+  [definitionMock selector:@selector(objectForKey:) returns:@"String"];
+  [definitionMock selector:@selector(allKeys) returns:[@"id", @"name"]];
   return definitionMock;
 }
 

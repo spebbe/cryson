@@ -483,7 +483,6 @@ If the commit failed, the following delegate method is instead called:
     var entity = [deletedEntities objectAtIndex:ix];
     if (entitiesToCommit == nil || [entitiesToCommit containsObject:entity]) {
       var deletedEntityObject = [entity toJSObject];
-      deletedEntityObject["crysonEntityClass"] = [entity className];
       [requestedDeletedEntities addObject:entity];
       [requestedDeletedEntityObjects addObject:deletedEntityObject];
     }
@@ -495,7 +494,6 @@ If the commit failed, the following delegate method is instead called:
     var entity = [persistedEntities objectAtIndex:ix];
     if (entitiesToCommit == nil || [entitiesToCommit containsObject:entity]) {
       var persistedEntityObject = [entity toJSObject];
-      persistedEntityObject["crysonEntityClass"] = [entity className];
       [requestedPersistedEntities addObject:entity];
       [requestedPersistedEntityObjects addObject:persistedEntityObject];
     }
@@ -510,7 +508,6 @@ If the commit failed, the following delegate method is instead called:
       if ([entity dirty]) {
         if (![requestedDeletedEntities containsObject:entity] && ![requestedPersistedEntities containsObject:entity]) {
           var updatedEntityObject = [entity toJSObject];
-          updatedEntityObject["crysonEntityClass"] = [entity className];
           [requestedUpdatedEntities addObject:entity];
           [requestedUpdatedEntityObjects addObject:updatedEntityObject];
         }
@@ -528,6 +525,7 @@ If the commit failed, the following delegate method is instead called:
     [context setUpdatedEntities:requestedUpdatedEntities];
     [context setDeletedEntities:requestedDeletedEntities];
     [context setPersistedEntities:requestedPersistedEntities];
+    [context setPersistedEntitiesSnapshot:[self _indexUpdatedEntitiesSnapshot:requestedPersistedEntityObjects]];
     [context setUpdatedEntitiesSnapshot:[self _indexUpdatedEntitiesSnapshot:requestedUpdatedEntityObjects]];
     [self startLoadOperationForDelegate:aDelegate];
     [remoteService post:commitRequest
@@ -619,10 +617,12 @@ If the commit failed, the following delegate method is instead called:
 - (void)commitSucceeded:(JSObject)commitResult context:(CrysonSessionContext)context
 {
   [self finishLoadOperationForDelegate:[context delegate]];
-  [persistedEntities removeObjectsInArray:[context persistedEntities]];
   [self _replaceTemporaryIds:commitResult.replacedTemporaryIds forPersistedEntities:[context persistedEntities]];
-  [self _refreshPersistedEntities:commitResult.persistedEntities];
-  [self _refreshUpdatedEntities:commitResult.updatedEntities withSnapshot:[context updatedEntitiesSnapshot] andUpdatedEntities:[context updatedEntities]];
+  var refreshedPersistedSnapshots = [self _refreshPersistedEntitiesSnapshot:[context persistedEntitiesSnapshot] withIds:commitResult.replacedTemporaryIds];
+  [self _refreshUpdatedEntities:commitResult.persistedEntities withSnapshot:refreshedPersistedSnapshots andUpdatedEntities:[context persistedEntities]];
+  var refreshedUpdatedSnapshots = [self _refreshUpdatedEntitiesSnapshot:[context updatedEntitiesSnapshot] withIds:commitResult.replacedTemporaryIds];
+  [self _refreshUpdatedEntities:commitResult.updatedEntities withSnapshot:refreshedUpdatedSnapshots andUpdatedEntities:[context updatedEntities]];
+  [persistedEntities removeObjectsInArray:[context persistedEntities]];
   [deletedEntities removeObjectsInArray:[context deletedEntities]];
   [[context delegate] crysonSessionCommitted:self];
 }
@@ -638,15 +638,44 @@ If the commit failed, the following delegate method is instead called:
   }
 }
 
-- (void)_refreshPersistedEntities:(CPArray)somePersistedEntities
+- (CPMutableDictionary)_refreshPersistedEntitiesSnapshot:(CPMutableDictionary)persistedEntitiesSnapshot withIds:(JSObject)replacedTemporaryIds
 {
-  for(var ix = 0;ix < somePersistedEntities.length;ix++) {
-    var persistedEntityJSObject = somePersistedEntities[ix];
-    var entityClass = CPClassFromString(persistedEntityJSObject.crysonEntityClass);
-    var entityId = persistedEntityJSObject.id;
-    var persistedEntity = [self findCachedByClass:entityClass andId:entityId];
-    [persistedEntity refreshWithJSObject:persistedEntityJSObject];
+  var result = [[CPMutableDictionary alloc] init];
+  var snapshotEnumerator = [[persistedEntitiesSnapshot allValues] objectEnumerator];
+  var snapshot = nil;
+  while((snapshot = [snapshotEnumerator nextObject]) != nil) {
+    snapshot.id = replacedTemporaryIds[snapshot.id];
+    [result setObject:snapshot forKey:snapshot.crysonEntityClass + "_" + snapshot.id];
   }
+  return result;
+}
+
+- (CPMutableDictionary)_refreshUpdatedEntitiesSnapshot:(CPMutableDicationary)updatedEntitiesSnapshot withIds:(JSObject)replacedTemporaryIds
+{
+  var snapshotEnumerator = [[updatedEntitiesSnapshot allValues] objectEnumerator];
+  var shapshot = nil;
+  while((snapshot = [snapshotEnumerator nextObject]) != nil) {
+    var attributeNames = _.keys(snapshot);
+    for(var ix = 0;ix < [attributeNames count];ix++) {
+      var attributeName = [attributeNames objectAtIndex:ix];
+      if ([attributeName hasSuffix:"_cryson_id"]) {
+        var replacementId = replacedTemporaryIds[snapshot[attributeName]];
+        if (replacementId) {
+          snapshot[attributeName] = replacementId;
+        }
+      } else if ([attributeName hasSuffix:"_cryson_ids"]) {
+        var idArray = snapshot[attributeName];
+        for(var iy = 0;iy < [idArray count];iy++) {
+          var replacementId = replacedTemporaryIds[idArray[iy]];
+          if (replacementId) {
+            idArray[iy] = replacementId;
+          }
+        }
+        snapshot[attributeName] = idArray.sort(compareNumbers);
+      }
+    }
+  }
+  return updatedEntitiesSnapshot;
 }
 
 - (void)_refreshUpdatedEntities:(CPArray)newSnapshots withSnapshot:(CPDictionary)oldSnapshots andUpdatedEntities:(CPArray)updatedEntities
