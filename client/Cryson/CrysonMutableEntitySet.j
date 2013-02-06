@@ -16,6 +16,8 @@
   limitations under the License.
 */
 
+@import <Foundation/Foundation.j>
+
 @implementation CrysonMutableEntitySet : CPObject
 {
   JSObject       entitiesByUID;

@@ -16,6 +16,13 @@
   limitations under the License.
 */
 
+@import <Foundation/Foundation.j>
+@import "CrysonSession.j"
+@import "CrysonMutableEntitySet.j"
+@import "CrysonDefinitionRepository.j"
+@import "CrysonMapWrapper.j"
+@import "CrysonEntityAsyncProxy.j"
+
 function compareNumbers(a,b){
   return a-b;
 }
@@ -102,7 +109,7 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
   var attribute;
   while((attribute = [attributeEnumerator nextObject]) != nil) {
     var attributeClass = [cachedDefinition objectForKey:attribute];
-    if ((typeof(attributeClass) ==  "string") && [attributeClass hasPrefix:"UserType_"]) {
+    if ((typeof (attributeClass) ==  "string") && [attributeClass hasPrefix:"UserType_"]) {
       if (attributeClass == "UserType_Map") {
         result[attribute] = [[CrysonMapWrapper alloc] initWithParentEntity:self parentAttributeName:attribute andAttributes:{}];
       } else {
@@ -219,7 +226,7 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
 - (CrysonEntity)resolveAssociation:(JSObject)jsonObject withName:(CPString)associationName
 {
   var associationClass = [cachedDefinition objectForKey:associationName];
-  if (typeof(associationClass) ==  "string") {
+  if (typeof (associationClass) ==  "string") {
     [CPException raise:"CrysonException" reason:("Unknown CrysonEntity: " + associationClass)];
   }
   var resolvedAssociation = [session findCachedByClass:associationClass andId:jsonObject.id];
@@ -431,7 +438,7 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
 {
   var foundAttribute = crysonUserTypes[attributeName];
   if (foundAttribute === undefined) {
-    if (typeof([cachedDefinition objectForKey:attributeName]) == "string") {
+    if (typeof ([cachedDefinition objectForKey:attributeName]) == "string") {
       return [self _reverseCoerceValue:attributeName];
     } else {
       return [self materializeAssociation:attributeName];
@@ -461,7 +468,7 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
     if (associationClass == nil) {
       [self doesNotRecognizeSelector:CPSelectorFromString(associationName)];
     }
-    if (typeof(associationClass) ==  "string") {
+    if (typeof (associationClass) ==  "string") {
       [CPException raise:"CrysonException" reason:("Unknown CrysonEntity: " + associationClass)];
     }
 

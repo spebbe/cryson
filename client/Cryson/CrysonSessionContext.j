@@ -16,6 +16,9 @@
   limitations under the License.
 */
 
+@import <Foundation/Foundation.j>
+@import "CrysonEntity.j"
+
 @implementation CrysonSessionContext : CPObject
 {
   id delegate @accessors;

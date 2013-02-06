@@ -16,6 +16,11 @@
   limitations under the License.
 */
 
+@import <Foundation/Foundation.j>
+@import "CrysonEntity.j"
+@import "CrysonMutableEntitySet.j"
+@import "CrysonSession.j"
+
 @implementation CrysonEntityAsyncProxy : CPObject
 {
   CrysonEntity                  entity;

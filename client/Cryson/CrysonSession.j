@@ -17,10 +17,12 @@
 */
 
 @import "RequestHelper.j"
+@import "RemoteService.j"
 @import "CrysonEntity.j"
 @import "CrysonSessionCache.j"
 @import "CrysonSessionContext.j"
 @import "CrysonSubSession.j"
+@import "CrysonMutableEntitySet.j"
 
 /*!
   @class CrysonSession
@@ -39,6 +41,7 @@
   CrysonDefinitionRepository crysonDefinitionRepository @accessors;
   id delegate @accessors;
   CPMutableDictionary loadOperationsByDelegate;
+  int nextTemporaryId;
 }
 
 - (id)initWithBaseUrl:(CPString)aBaseUrl andDelegate:(id)aDelegate
@@ -653,7 +656,7 @@ If the commit failed, the following delegate method is instead called:
 - (CPMutableDictionary)_refreshUpdatedEntitiesSnapshot:(CPMutableDicationary)updatedEntitiesSnapshot withIds:(JSObject)replacedTemporaryIds
 {
   var snapshotEnumerator = [[updatedEntitiesSnapshot allValues] objectEnumerator];
-  var shapshot = nil;
+  var snapshot = nil;
   while((snapshot = [snapshotEnumerator nextObject]) != nil) {
     var attributeNames = _.keys(snapshot);
     for(var ix = 0;ix < [attributeNames count];ix++) {

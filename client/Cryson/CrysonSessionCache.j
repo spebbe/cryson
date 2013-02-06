@@ -16,6 +16,10 @@
   limitations under the License.
 */
 
+@import <Foundation/Foundation.j>
+@import "CrysonMutableEntitySet.j"
+@import "CrysonEntity.j"
+
 @implementation CrysonSessionCache : CPObject
 {
   CPMutableDictionary    cachedEntitiesByHashKey;
