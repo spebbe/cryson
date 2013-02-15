@@ -130,6 +130,11 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
   }
 }
 
+- (BOOL)hasAttribute:(CPString)anAttributeName
+{
+  return [[self definition] containsKey:anAttributeName];
+}
+
 - (id)initWithJSObject:(JSObject)jsonObject session:(CrysonSession)aSession
 {
   self = [super init];
