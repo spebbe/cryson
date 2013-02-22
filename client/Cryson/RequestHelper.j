@@ -91,7 +91,7 @@
       return [[response rawString] objectFromJSON];
     } catch(ex) {
       if(console && console.error) {
-        console.error("RequestHelper#sync "+verb+" failed to convert response from "+url+" to JSON.", response);
+        console.error("RequestHelper#syncRequestWithVerb:url:object: failed to convert response from "+url+" to JSON.", response);
       }
     }
   }
