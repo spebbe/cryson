@@ -86,7 +86,7 @@
 {
   var hashKeys = [],
       currentKlazz = klazz;
-  while(currentKlazz != CrysonEntity) {
+  while(currentKlazz != nil && currentKlazz != CrysonEntity) {
     [hashKeys addObject:(currentKlazz.name + "_" + id)];
     currentKlazz = [currentKlazz superclass];
   }
