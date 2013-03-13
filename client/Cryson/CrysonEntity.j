@@ -593,14 +593,26 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
   }
 }
 
+
 - (void)refreshWithJSObject:(JSObject)newObject
 {
+  var equalAttributes = function (sorted, unsorted) {
+    if (unsorted instanceof Array) {
+      return _.isEqual(sorted, unsorted.sort(compareNumbers));
+    }
+    return _.isEqual(sorted, unsorted);
+  }
+  var currentJSObject = [self toJSObject];
   for(var attributeName in newObject) {
-    [self willChangeValueForKey:[self attributeName:attributeName]];
+    if (!equalAttributes(currentJSObject[attributeName], newObject[attributeName])) {
+      [self willChangeValueForKey:[self attributeName:attributeName]];
+    }
   }
   [self setAttributesFromJSObject:newObject];
   for(var attributeName in newObject) {
-    [self didChangeValueForKey:[self attributeName:attributeName]];
+    if (!equalAttributes(currentJSObject[attributeName], newObject[attributeName])) {
+      [self didChangeValueForKey:[self attributeName:attributeName]];
+    }
   }
   [self resetVirgin];
 }
