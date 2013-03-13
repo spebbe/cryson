@@ -31,6 +31,7 @@
   CPArray persistedEntities @accessors;
   CPString errorMessage @accessors;
   CrysonEntity entityToRefresh @accessors;
+  CPArray entityIdsToFindOrRefresh @accessors;
   CPString namedQuery @accessors;
   CPDictionary persistedEntitiesSnapshot @accessors;
   CPDictionary updatedEntitiesSnapshot @accessors;

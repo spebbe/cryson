@@ -452,6 +452,27 @@ By passing an array of key paths (e.g ["children", "children.toys"]) as the 'ass
 }
 
 /*!
+  Given some entity ids, refresh objects in session and fetch the rest. Upon suceesful completion, the following delegate method will be called:
+- - (void)crysonSession:(CrysonSession)aCrysonSession foundOrRefreshed:(CPArray)someEntities byClass:(Class)entityClass andIds:(CPArray)someIds
+  If a problem occured, the following delegate method will instead be called:
+- - (void)crysonSession:(CrysonSession)aCrysonSession failedToFindOrRefreshByClass:(Class)entityClass andIds:(CPArray)someIds error:(CrysonError)error
+
+By passing an array of key paths (e.g ["children", "children.toys"]) as the 'associationsToFetch' argument, it is possible to force eager fetching of associations that would otherwise have been lazily fetched.
+*/
+- (void)findOrRefreshByClass:(Class)entityClass andIds:(CPArray)someIds fetch:(CPArray)associationsToFetch delegate:(id)aDelegate
+{
+  var url = baseUrl + "/" + [entityClass className] + "/" + [someIds componentsJoinedByString:","] + "?fetch=" + [self _associationNamesToFetchString:associationsToFetch];
+  var context = [CrysonSessionContext contextWithDelegate:aDelegate andEntityClass:entityClass];
+  [context setEntityIdsToFindOrRefresh:someIds];
+  [self startLoadOperationForDelegate:aDelegate];
+  [remoteService get:url
+            delegate:self
+           onSuccess:@selector(findOrRefreshSucceeded:context:)
+             onError:@selector(findOrRefreshFailed:statusCode:context:)
+             context:context];
+}
+
+/*!
   Commit any uncommitted changes to the entities in the session. Upon successful completion, the following delegate method will be called:
 - - (void)crysonSessionCommitted:(CrysonSession)aCrysonSession
 
@@ -810,6 +831,35 @@ If the commit failed, the following delegate method is instead called:
     [[context delegate] crysonSession:self found:[CPArray array] byClass:[context entityClass] andIds:[context entityId]];
   } else if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindByClass:andIds:error:)]) {
     [[context delegate] crysonSession:self failedToFindByClass:[context entityClass] andIds:[context entityId] error:[self _buildCrysonErrorWithRawMessage:errorString statusCode:statusCode]];
+  }
+}
+
+- (void)findOrRefreshSucceeded:(CPArray)entities context:(CrysonSessionContext)context
+{
+  [self finishLoadOperationForDelegate:[context delegate]];
+  var entitiesArray = entities;
+  if (!(entities instanceof Array)) {
+    entitiesArray = [entitiesArray];
+  }
+  var foundOrRefreshedEntities = [];
+  for (var ix=0;ix<[entitiesArray count]; ix++) {
+    var entityJSObject = [entitiesArray objectAtIndex:ix];
+    var cachedEntity = [self findCachedByClass:[context entityClass] andId:entityJSObject.id];
+    if (cachedEntity) {
+      [cachedEntity refreshWithJSObject:entityJSObject];
+      [foundOrRefreshedEntities addObject:cachedEntity];
+    } else {
+      [foundOrRefreshedEntities addObject:[self materializeEntity:entityJSObject]];
+    }
+  }
+  [[context delegate] crysonSession:self foundOrRefreshed:foundOrRefreshedEntities byClass:[context entityClass] andIds:[context entityIdsToFindOrRefresh]];
+}
+
+- (void)findOrRefreshFailed:(CPString)errorString statusCode:(CPNumber)statusCode context:(CrysonSessionContext)context
+{
+  [self finishLoadOperationForDelegate:[context delegate]];
+  if ([[context delegate] respondsToSelector:@selector(crysonSession:failedToFindOrRefreshByClass:andIds:error:)]) {
+    [[context delegate] crysonSession:self failedToFindOrRefreshByClass:[context entityClass] andIds:[context entityIdsToFindOrRefresh] error:[self _buildCrysonErrorWithRawMessage:errorString statusCode:statusCode]];
   }
 }
 
