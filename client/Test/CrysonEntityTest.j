@@ -17,7 +17,7 @@
 */
 
 @import "../Cryson/Cryson.j"
-if (typeof(_) == 'undefined') {
+if (typeof (_) == 'undefined') {
   _ = exports._;
 }
 @import <OJMoq/OJMoq.j>

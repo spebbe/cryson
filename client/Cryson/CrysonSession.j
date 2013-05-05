@@ -119,6 +119,9 @@
 */
 - (void)delete:(CrysonEntity)entity
 {
+  [entity willChangeValueForKey:@"dirty"];
+  [entity _forceDirty];
+  [entity didChangeValueForKey:@"dirty"];
   if ([persistedEntities containsObject:entity]) {
     [self evict:entity];
   } else if (![persistedEntities containsObject:entity]) {
@@ -143,6 +146,8 @@
   }
   [persistedEntities addObject:entity];
   [self attach:entity];
+  [entity willChangeValueForKey:@"dirty"];
+  [entity didChangeValueForKey:@"dirty"];
 }
 
 /*!

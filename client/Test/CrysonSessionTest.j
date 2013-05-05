@@ -17,7 +17,7 @@
 */
 
 @import "../Cryson/Cryson.j"
-if (typeof(_) == 'undefined') {
+if (typeof (_) == 'undefined') {
   _ = exports._;
 }
 @import <OJMoq/OJMoq.j>
@@ -171,6 +171,51 @@ if (typeof(_) == 'undefined') {
   [OJAssert assert:14 equals:[testEntity id]];
   [OJAssert assert:@"updatedOnServer" equals:[testEntity name]];
   [OJAssert assertFalse:[testEntity dirty]];
+}
+
+- (void)testDirtyCallbackWhenPersistingEntity
+{
+  var delegateWasCalled = NO;
+  var delegateMock = moq();
+  [delegateMock selector:@selector(crysonSession:dirtyDidChangeForEntity:) callback:function(args /* crysonSession, dirtyObject */) {
+      [OJAssert assert:testEntity equals:args[1]];
+      [OJAssert assertTrue:[args[1] dirty]];
+      delegateWasCalled = YES;
+    }];
+
+  var testSession = [self givenCrysonSessionWithRemoteService:moq() andDelegate:delegateMock];
+  var testEntity = [self givenTestEntity];
+  [OJAssert assertFalse:[testEntity dirty]];
+  [OJAssert assertFalse:[testSession dirty]];
+  [OJAssert assertFalse:delegateWasCalled];
+  [testSession persist:testEntity];
+  [OJAssert assertTrue:delegateWasCalled];
+  [OJAssert assertTrue:[testEntity dirty]];
+  [OJAssert assertTrue:[testSession dirty]];
+}
+
+- (void)testDirtyCallbackWhenDeletingEntity
+{
+  var delegateWasCalled = NO;
+  var delegateMock = moq();
+  [delegateMock selector:@selector(crysonSession:dirtyDidChangeForEntity:) callback:function(args /* crysonSession, dirtyObject */) {
+      [OJAssert assert:testEntity equals:args[1]];
+      [OJAssert assertTrue:[args[1] dirty]];
+      delegateWasCalled = YES;
+    }];
+
+  var testSession = [self givenCrysonSessionWithRemoteService:moq() andDelegate:delegateMock];
+  var testEntity = [self givenTestEntity];
+  [testEntity setId:100];
+  [testEntity virginize];
+  [testSession attach:testEntity];
+  [OJAssert assertFalse:[testEntity dirty]];
+  [OJAssert assertFalse:[testSession dirty]];
+  [OJAssert assertFalse:delegateWasCalled];
+  [testSession delete:testEntity];
+  [OJAssert assertTrue:delegateWasCalled];
+  [OJAssert assertTrue:[testEntity dirty]];
+  [OJAssert assertTrue:[testSession dirty]];
 }
 
 @end

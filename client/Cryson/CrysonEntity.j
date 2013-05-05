@@ -58,6 +58,7 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
   CPDictionary cachedDefinition;
   CPString virginJSObject;
   CrysonEntityAsyncProxy crysonEntityAsyncProxy;
+  BOOL crysonForcedDirty;
 }
 
 /*!
@@ -81,6 +82,7 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
     crysonObject["id"] = nil;
     crysonAssociations = {};
     crysonUserTypes = [self createEmptyUserTypes];
+    crysonForcedDirty = NO;
     [self virginize];
   }
   return self;
@@ -141,6 +143,7 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
   if (self)
   {
     session = aSession;
+    crysonForcedDirty = NO;
     [self setAttributesFromJSObject:jsonObject];
     [self virginize];
   }
@@ -518,6 +521,7 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
 {
   // TODO: find cheaper way to do deep clone, maybe?
   virginJSObject = JSON.parse(JSON.stringify([self toJSObject]));
+  crysonForcedDirty = NO;
 }
 
 - (JSObject)toJSObject
@@ -576,7 +580,12 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
 */
 - (BOOL)dirty
 {
-  return !_.isEqual([self toJSObject], virginJSObject);
+  return crysonForcedDirty === YES || !_.isEqual([self toJSObject], virginJSObject);
+}
+
+- (void)_forceDirty
+{
+  crysonForcedDirty = YES;
 }
 
 /*!
