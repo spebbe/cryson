@@ -14,24 +14,15 @@ public class EntryContent extends BaseEntity implements Restrictable {
   @Lob @Column(length = Integer.MAX_VALUE)
   private String text;
 
-  @OneToMany(fetch = FetchType.LAZY, mappedBy = "content")
+  @OneToOne(fetch = FetchType.LAZY, mappedBy = "content", optional = false)
   @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
-  private Set<Entry> entries;
-
-  private Entry getEntry() {
-    if (entries == null || entries.size() == 0) {
-      return null;
-    }
-    return entries.iterator().next();
-  }
+  private Entry entry;
 
   public boolean isReadableBy(Authentication authentication) {
-    Entry entry = getEntry();
     return entry == null || entry.isReadableBy(authentication);
   }
 
   public boolean isWritableBy(Authentication authentication) {
-    Entry entry = getEntry();
     return entry == null || entry.isWritableBy(authentication);
   }
 

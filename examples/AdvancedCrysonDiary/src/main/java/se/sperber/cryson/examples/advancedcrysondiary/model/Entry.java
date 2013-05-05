@@ -16,7 +16,7 @@ public class Entry extends BaseEntity implements Restrictable {
 
   private String title;
 
-  @ManyToOne(fetch = FetchType.LAZY)
+  @OneToOne(fetch = FetchType.LAZY, optional = false)
   @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
   private EntryContent content;
 

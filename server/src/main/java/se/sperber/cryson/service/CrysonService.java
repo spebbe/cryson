@@ -214,6 +214,7 @@ public class CrysonService {
     JsonArray updatedEntities = committedEntities.getAsJsonObject().get("updatedEntities").getAsJsonArray();
     for(JsonElement updatedEntityElement : updatedEntities) {
       Object entity = crysonSerializer.deserialize(updatedEntityElement, entityClass(updatedEntityElement), replacedTemporaryIds);
+      patchOneToOnes(entity);
       Object updatedEntity = crysonRepository.update(entity);
       updatedPersistedEntities.add(updatedEntity);
     }
@@ -223,7 +224,17 @@ public class CrysonService {
 
     return responseJsonObject;
   }
-  
+
+  private void patchOneToOnes(Object entity) throws Exception {
+    List<Field> oneToOneFields = reflectionHelper.getOneToOneFields(entity);
+    for(Field field : oneToOneFields) {
+      Object associatedEntity = field.get(entity);
+      if (associatedEntity != null) {
+        field.set(entity, crysonRepository.findById(crysonSerializer.getEntityClassName(associatedEntity), crysonSerializer.getPrimaryKey(associatedEntity), Collections.EMPTY_SET));
+      }
+    }
+  }
+
   public void refreshEntities(JsonObject responseJsonObject, ListenerNotificationBatch listenerNotificationBatch, List<Object> persistedEntities, List<Object> updatedEntities) {
     List<Object> refreshedPersistedEntities = new ArrayList<Object>(persistedEntities.size());
     List<Object> refreshedUpdatedEntities = new ArrayList<Object>(updatedEntities.size());

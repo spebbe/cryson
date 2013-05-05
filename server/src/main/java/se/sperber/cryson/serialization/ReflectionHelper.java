@@ -35,7 +35,8 @@ import java.util.concurrent.ConcurrentMap;
 public class ReflectionHelper {
   
   private ConcurrentMap<Field, Boolean> lazyFieldCache = new ConcurrentHashMap<Field, Boolean>();
-  private ConcurrentHashMap<Class, List<Field>> versionFieldCache = new ConcurrentHashMap<Class, List<Field>>();
+  private ConcurrentMap<Class, List<Field>> versionFieldCache = new ConcurrentHashMap<Class, List<Field>>();
+  private ConcurrentMap<Class, List<Field>> oneToOneFieldCache = new ConcurrentHashMap<Class, List<Field>>();
 
   public boolean isLazyField(Field field) {
     if (lazyFieldCache.containsKey(field)) {
@@ -154,6 +155,21 @@ public class ReflectionHelper {
   public String getAttributeNameFromGetterName(String methodName) {
     String capitalizedAttributeName = methodName.replaceFirst("get", "");
     return capitalizedAttributeName.substring(0, 1).toLowerCase() + capitalizedAttributeName.substring(1);
+  }
+
+  public List<Field> getOneToOneFields(Object entity) {
+    if (oneToOneFieldCache.containsKey(entity.getClass())) {
+      return oneToOneFieldCache.get(entity.getClass());
+    }
+    List<Field> oneToOneFields = new ArrayList<Field>();
+    for(Field field : getAllDeclaredFields(entity.getClass())) {
+      if (field.isAnnotationPresent(OneToOne.class)) {
+        field.setAccessible(true);
+        oneToOneFields.add(field);
+      }
+    }
+    oneToOneFieldCache.put(entity.getClass(), oneToOneFields);
+    return oneToOneFields;
   }
 
   public Long getVersion(Object entity) {
