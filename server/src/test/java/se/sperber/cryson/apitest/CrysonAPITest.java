@@ -176,11 +176,26 @@ public class CrysonAPITest {
 
   @Test
   public void shouldFindEntitiesByNamedQuery() throws Exception {
-    GetMethod getMethod = new GetMethod("http://localhost:8789/cryson/namedQuery/CrysonTestEntity.findByName?name=created&fetch=childEntities");
-    int status = httpClient.executeMethod(getMethod);
+    PostMethod postMethod = new PostMethod("http://localhost:8789/cryson/namedQuery/CrysonTestEntity.findByName?fetch=childEntities");
+    postMethod.setRequestEntity(new StringRequestEntity("{\"name\":\"created\"}", "application/json", "UTF-8"));
+    int status = httpClient.executeMethod(postMethod);
     assertEquals(HttpStatus.SC_OK, status);
 
-    JsonElement jsonElement = crysonSerializer.parse(getMethod.getResponseBodyAsString());
+    JsonElement jsonElement = crysonSerializer.parse(postMethod.getResponseBodyAsString());
+    assertEquals(1, jsonElement.getAsJsonArray().size());
+    CrysonTestEntity testEntity = crysonSerializer.deserialize(jsonElement.getAsJsonArray().get(0), CrysonTestEntity.class, null);
+    assertEquals(foundEntity.getId(), testEntity.getId());
+    assertEquals((long)foundEntity.getChildEntities().iterator().next().getId(), jsonElement.getAsJsonArray().get(0).getAsJsonObject().get("childEntities").getAsJsonArray().get(0).getAsJsonObject().get("id").getAsLong());
+  }
+
+  @Test
+  public void shouldFindEntitiesByNamedQueryWithMultipleNames() throws Exception {
+    PostMethod postMethod = new PostMethod("http://localhost:8789/cryson/namedQuery/CrysonTestEntity.findByNames?fetch=childEntities");
+    postMethod.setRequestEntity(new StringRequestEntity("{\"names\":[\"notme\",\"created\",\"notthere\"]}", "application/json", "UTF-8"));
+    int status = httpClient.executeMethod(postMethod);
+    assertEquals(HttpStatus.SC_OK, status);
+
+    JsonElement jsonElement = crysonSerializer.parse(postMethod.getResponseBodyAsString());
     assertEquals(1, jsonElement.getAsJsonArray().size());
     CrysonTestEntity testEntity = crysonSerializer.deserialize(jsonElement.getAsJsonArray().get(0), CrysonTestEntity.class, null);
     assertEquals(foundEntity.getId(), testEntity.getId());

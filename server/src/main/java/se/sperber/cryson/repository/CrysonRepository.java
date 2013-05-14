@@ -18,6 +18,9 @@
 
 package se.sperber.cryson.repository;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import org.hibernate.Criteria;
 import org.hibernate.FetchMode;
 import org.hibernate.Query;
@@ -38,7 +41,9 @@ import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.ValidatorFactory;
 import javax.ws.rs.core.MultivaluedMap;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Repository
@@ -110,7 +115,37 @@ public class CrysonRepository {
             .setCacheable(true);
 
     for(String parameterName : queryParameters.keySet()) {
-      query.setParameter(parameterName, queryParameters.getFirst(parameterName));
+      List<String> parameters = queryParameters.get(parameterName);
+      if (parameters.size() > 1) {
+        query.setParameterList(parameterName, parameters);
+      } else {
+        query.setParameter(parameterName, parameters.get(0));
+      }
+    }
+
+    return query.list();
+  }
+
+  @PostFilter("hasPermission(filterObject, 'read')")
+  public List<Object> findByNamedQueryJson(String queryName, JsonElement parameters) {
+    Query query = sessionFactory.getCurrentSession().getNamedQuery(queryName)
+            .setResultTransformer(DistinctRootEntityResultTransformer.INSTANCE)
+            .setCacheable(true);
+
+    JsonObject parameterMap = parameters.getAsJsonObject();
+    for (Map.Entry<String, JsonElement> element : parameterMap.entrySet()) {
+      String key = element.getKey();
+      JsonElement value = element.getValue();
+      if (value.isJsonArray()) {
+        JsonArray parametersArray = value.getAsJsonArray();
+        List<String> parameterList = new ArrayList<String>();
+        for (JsonElement arrayElement : parametersArray) {
+          parameterList.add(arrayElement.getAsString());
+        }
+        query.setParameterList(key, parameterList);
+      } else if (value.isJsonPrimitive()) {
+        query.setParameter(key, value.getAsString());
+      }
     }
 
     return query.list();

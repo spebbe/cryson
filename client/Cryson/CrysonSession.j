@@ -395,24 +395,23 @@ By passing an array of key paths (e.g ["children", "children.toys"]) as the 'ass
 */
 - (void)findByNamedQuery:(CPString)queryName withParameters:(CPDictionary)parameters fetch:(CPArray)associationsToFetch delegate:(id)aDelegate
 {
-  var url = baseUrl + "/namedQuery/" + queryName + "/";
-  var firstParameter = YES;
-  var parameterNames = [parameters allKeys];
-  for (var ix = 0;ix < [parameterNames count];ix++) {
-    url += (firstParameter ? "?" : "&");
-    firstParameter = NO;
-    var parameterName = [parameterNames objectAtIndex:ix];
-    url += parameterName + "=" + encodeURIComponent([parameters objectForKey:parameterName]);
+  var url = baseUrl + "/namedQuery/" + queryName + "/?fetch=" + [self _associationNamesToFetchString:associationsToFetch],
+      context = [CrysonSessionContext contextWithDelegate:aDelegate],
+      keys = [parameters allKeys],
+      object = {};
+  for (var i = 0; i < [keys count]; ++i) {
+    var key = [keys objectAtIndex:i],
+        value = [parameters objectForKey:key];
+      object[key] = value;
   }
-  url += (firstParameter ? "?" : "&") + "fetch=" + [self _associationNamesToFetchString:associationsToFetch];
-  var context = [CrysonSessionContext contextWithDelegate:aDelegate];
   [context setNamedQuery:queryName];
   [self startLoadOperationForDelegate:aDelegate];
-  [remoteService get:url
-            delegate:self
-           onSuccess:@selector(findAllByNamedQuerySucceeded:context:)
-             onError:@selector(findAllByNamedQueryFailed:statusCode:context:)
-             context:context];
+  [remoteService post:object
+                   to:url
+             delegate:self
+            onSuccess:@selector(findAllByNamedQuerySucceeded:context:)
+              onError:@selector(findAllByNamedQueryFailed:statusCode:context:)
+              context:context];
 }
 
 /*!
@@ -729,7 +728,7 @@ If the commit failed, the following delegate method is instead called:
     var updatedEntity = [self findCachedByClass:entityClass andId:newSnapshot.id];
     for(var attributeNameIndex in attributeNames) {
       var attributeName = attributeNames[attributeNameIndex];
-      var attributeType = [definition objectForKey:attributeName]; 
+      var attributeType = [definition objectForKey:attributeName];
       if (checkableTypes[attributeType] == YES) {
         if (newSnapshot[attributeName] != oldSnapshot[attributeName]) {
           [updatedEntity willChangeValueForKey:attributeName];

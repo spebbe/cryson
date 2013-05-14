@@ -142,6 +142,18 @@ public class CrysonFrontendService {
     }
   }
 
+  @POST
+  @Path("namedQuery/{query_name}")
+  public Response getEntitiesByNamedQueryPost(@PathParam("query_name") String queryName, @Context UriInfo uriInfo, @QueryParam("fetch") String rawAssociationsToFetch, String json) {
+    try {
+      JsonElement parameters = crysonSerializer.parse(json);
+      Set<String> associationsToFetch = splitAssociationsToFetch(rawAssociationsToFetch);
+      return crysonService.getEntitiesByNamedQueryJson(queryName, associationsToFetch, parameters);
+    } catch(Throwable t) {
+      return translateThrowable(t);
+    }
+  }
+
   @PUT
   @Path("{entity_name}")
   public Response createEntity(@Context UriInfo uriInfo, @Context HttpHeaders httpHeaders, @PathParam("entity_name") String entityName, String json) {

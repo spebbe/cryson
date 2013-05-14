@@ -166,6 +166,11 @@ public class CrysonService {
     return Response.ok(crysonSerializer.serialize(entities, associationsToFetch)).build();
   }
 
+  public Response getEntitiesByNamedQueryJson(String queryName, Set<String> associationsToFetch, JsonElement parameters) {
+    List<Object> entities = crysonRepository.findByNamedQueryJson(queryName, parameters);
+    return Response.ok(crysonSerializer.serialize(entities, associationsToFetch)).build();
+  }
+
   public Response createEntity(String entityName, String json, ListenerNotificationBatch listenerNotificationBatch) throws Exception {
     Class entityClass = entityClass(entityName);
     Object entity = crysonSerializer.deserialize(json, entityClass, null);
@@ -355,5 +360,4 @@ public class CrysonService {
   private Class entityClass(JsonElement entityElement) throws ClassNotFoundException {
     return entityClass(entityElement.getAsJsonObject().get("crysonEntityClass").getAsString());
   }
-
 }
