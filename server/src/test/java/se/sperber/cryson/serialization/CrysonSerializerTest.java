@@ -18,6 +18,7 @@
 
 package se.sperber.cryson.serialization;
 
+import com.google.common.collect.Sets;
 import com.google.gson.JsonElement;
 import se.sperber.cryson.testutil.CrysonTestChildEntity;
 import se.sperber.cryson.testutil.CrysonTestEntity;
@@ -25,6 +26,7 @@ import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
 
+import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
@@ -64,6 +66,54 @@ public class CrysonSerializerTest {
       String serializedChildEntity = crysonSerializer.serialize(testChildEntity);
       String expectedSerializedChildEntity = "{\"id\":100,\"parent\":{\"id\":1,\"name\":\"test\",\"version\":1,\"crysonEntityClass\":\"CrysonTestEntity\",\"doubleId\":2,\"childEntities_cryson_ids\":[100]},\"crysonEntityClass\":\"CrysonTestChildEntity\"}";
       assertEquals(expectedSerializedChildEntity, serializedChildEntity);
+    }
+
+    @Test
+    public void shouldSerializeUnauthorizedEntity() {
+      CrysonSerializer serializer = givenCrysonSerializer();
+      String serializedEntity = serializer.serializeUnauthorizedEntity("CrysonTestEntity", 1L);
+      assertEquals("{\"crysonUnauthorized\":true,\"crysonEntityClass\":\"CrysonTestEntity\",\"id\":1}", serializedEntity);
+    }
+
+    @Test
+    public void shouldSerializeEagerFetchedToManyUnauthorizedEntities() {
+      CrysonSerializer serializer = givenCrysonSerializer();
+
+      CrysonTestChildEntity authorizedTestChildEntity = new CrysonTestChildEntity();
+      authorizedTestChildEntity.setId(100L);
+      authorizedTestChildEntity.setShouldBeReadable(true);
+      CrysonTestChildEntity unauthorizedTestChildEntity = new CrysonTestChildEntity();
+      unauthorizedTestChildEntity.setId(200L);
+      unauthorizedTestChildEntity.setShouldBeReadable(false);
+
+      CrysonTestEntity testEntity = new CrysonTestEntity();
+      testEntity.setId(1L);
+      testEntity.setVersion(1L);
+      testEntity.setName("test");
+      testEntity.setChildEntities(Sets.newLinkedHashSet(Arrays.asList(authorizedTestChildEntity, unauthorizedTestChildEntity)));
+
+      String serializedEntity = serializer.serialize(testEntity, Sets.newHashSet("childEntities"));
+      assertEquals("{\"id\":1,\"name\":\"test\",\"version\":1,\"crysonEntityClass\":\"CrysonTestEntity\",\"doubleId\":2,\"childEntities\":[{\"id\":100,\"parent\":null,\"crysonEntityClass\":\"CrysonTestChildEntity\"},{\"id\":200,\"crysonEntityClass\":\"CrysonTestChildEntity\",\"crysonUnauthorized\":true}]}", serializedEntity);
+    }
+
+    @Test
+    public void shouldSerializeEagerFetchedToOneUnauthorizedEntity() {
+      CrysonSerializer serializer = givenCrysonSerializer();
+
+      CrysonTestChildEntity testChildEntity = new CrysonTestChildEntity();
+      testChildEntity.setId(100L);
+
+      CrysonTestEntity unauthorizedTestEntity = new CrysonTestEntity();
+      unauthorizedTestEntity.setId(1L);
+      unauthorizedTestEntity.setVersion(1L);
+      unauthorizedTestEntity.setName("test");
+      unauthorizedTestEntity.setChildEntities(Sets.newLinkedHashSet(Arrays.asList(testChildEntity)));
+      unauthorizedTestEntity.setShouldBeReadable(false);
+
+      testChildEntity.setParent(unauthorizedTestEntity);
+
+      String serializedEntity = serializer.serialize(testChildEntity, Sets.newHashSet("parent"));
+      assertEquals("{\"id\":100,\"parent\":{\"id\":1,\"crysonEntityClass\":\"CrysonTestEntity\",\"crysonUnauthorized\":true},\"crysonEntityClass\":\"CrysonTestChildEntity\"}", serializedEntity);
     }
     
   }
@@ -112,5 +162,5 @@ public class CrysonSerializerTest {
     }
 
   }
-  
+
 }

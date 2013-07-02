@@ -18,6 +18,10 @@
 
 package se.sperber.cryson.repository;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -33,9 +37,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PostFilter;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Repository;
 import se.sperber.cryson.exception.CrysonValidationFailedException;
 import se.sperber.cryson.security.Restrictable;
+import se.sperber.cryson.serialization.ReflectionHelper;
+import se.sperber.cryson.serialization.UnauthorizedEntity;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
@@ -52,12 +59,14 @@ public class CrysonRepository {
   @Autowired
   private SessionFactory sessionFactory;
 
+  @Autowired
+  private ReflectionHelper reflectionHelper;
+
   @Value("${cryson.validation.enabled}")
   private boolean validationsEnabled;
 
   private ValidatorFactory validatorFactory = Validation.buildDefaultValidatorFactory();
 
-  @PostAuthorize("hasPermission(returnObject, 'read')")
   public Object findById(String entityClassName, Long id, Set<String> associationsToFetch) {
     Criteria criteria = sessionFactory.getCurrentSession()
             .createCriteria(entityClassName)
@@ -67,11 +76,22 @@ public class CrysonRepository {
 
     setFetchModeForAssociations(criteria, associationsToFetch);
 
-    return criteria.uniqueResult();
+    Object foundEntity = criteria.uniqueResult();
+    return getEntityOrUnauthorizedEntity(foundEntity);
   }
 
-  @PostFilter("hasPermission(filterObject, 'read')")
-  public List findByIds(String entityClassName, List<Long> ids, Set<String> associationsToFetch) {
+  private Object getEntityOrUnauthorizedEntity(Object entity) {
+    if (entity instanceof Restrictable) {
+      if (((Restrictable) entity).isReadableBy(SecurityContextHolder.getContext().getAuthentication())) {
+        return entity;
+      } else {
+        return new UnauthorizedEntity(entity.getClass().getSimpleName(), reflectionHelper.getPrimaryKey(entity));
+      }
+    }
+    return entity;
+  }
+
+  public List findByIds(final String entityClassName, List<Long> ids, Set<String> associationsToFetch) {
     Criteria criteria = sessionFactory.getCurrentSession()
             .createCriteria(entityClassName)
             .add(Restrictions.in("id", ids))
@@ -80,7 +100,13 @@ public class CrysonRepository {
 
     setFetchModeForAssociations(criteria, associationsToFetch);
 
-    return criteria.list();
+    List<Object> foundEntities = criteria.list();
+
+    return FluentIterable.from(foundEntities).transform(new Function<Object, Object>() {
+      public Object apply(Object object) {
+        return getEntityOrUnauthorizedEntity(object);
+      }
+    }).toList();
   }
 
   @PostFilter("hasPermission(filterObject, 'read')")
@@ -215,4 +241,11 @@ public class CrysonRepository {
     }
   }
 
+  void setSessionFactory(SessionFactory sessionFactory) {
+    this.sessionFactory = sessionFactory;
+  }
+
+  void setReflectionHelper(ReflectionHelper reflectionHelper) {
+    this.reflectionHelper = reflectionHelper;
+  }
 }

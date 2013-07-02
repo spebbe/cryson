@@ -54,6 +54,7 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
   CrysonSession session @accessors;
   JSObject crysonObject;
   JSObject crysonAssociations;
+  JSObject crysonUnauthorizedAssociations;
   JSObject crysonUserTypes;
   CPDictionary cachedDefinition;
   CPString virginJSObject;
@@ -81,11 +82,17 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
     crysonObject = {};
     crysonObject["id"] = nil;
     crysonAssociations = {};
+    crysonUnauthorizedAssociations = {};
     crysonUserTypes = [self createEmptyUserTypes];
     crysonForcedDirty = NO;
     [self virginize];
   }
   return self;
+}
+
+- (BOOL)isAuthorized
+{
+  return YES;
 }
 
 /*!
@@ -154,6 +161,7 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
 {
   crysonEntityAsyncProxy = nil;
   crysonAssociations = {};
+  crysonUnauthorizedAssociations = {};
   cachedDefinition = [self definition];
   [self populateCrysonObjectFromJSONObject:jsonObject];
 }
@@ -172,10 +180,19 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
           embeddedEntities[ix] = [self resolveAssociation:embeddedAttribute[ix] withName:attributeName];
           embeddedIds[ix] = embeddedAttribute[ix].id;
         }
-        crysonAssociations[attributeName] = embeddedEntities;
+        var unauthorizedEntities = _.filter(embeddedEntities, function(e) { return ![e isAuthorized]; });
+        var authorizedEntities = _.filter(embeddedEntities, function(e) { return [e isAuthorized]; });
+        crysonAssociations[attributeName] = authorizedEntities;
+        crysonUnauthorizedAssociations[attributeName] = unauthorizedEntities;
         crysonObject[[self idsAttributeNameFromAttributeName:attributeName]] = embeddedIds;
       } else {
-        crysonAssociations[attributeName] = [self resolveAssociation:embeddedAttribute withName:attributeName];
+        var embeddedAssociation = [self resolveAssociation:embeddedAttribute withName:attributeName];
+        if (embeddedAssociation == nil || [embeddedAssociation isAuthorized]) {
+          crysonAssociations[attributeName] = embeddedAssociation;
+        } else {
+          crysonAssociations[attributeName] = nil;
+          crysonUnauthorizedAssociations[attributeName] = embeddedAssociation;
+        }
         crysonObject[[self idAttributeNameFromAttributeName:attributeName]] = embeddedAttribute.id;
       }
     } else if ([self isUserTypeAttributeName:attributeName]) {
@@ -240,7 +257,11 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
   var resolvedAssociation = [session findCachedByClass:associationClass andId:jsonObject.id];
   if (!resolvedAssociation) {
     var actualAssociationClass = CPClassFromString(jsonObject.crysonEntityClass);
-    resolvedAssociation = [[actualAssociationClass alloc] initWithJSObject:jsonObject session:session];
+    if (jsonObject.crysonUnauthorized) {
+      resolvedAssociation = [[CrysonUnauthorizedEntity alloc] initWithJSObject:jsonObject session:session];
+    } else {
+      resolvedAssociation = [[actualAssociationClass alloc] initWithJSObject:jsonObject session:session];
+    }
     [session attach:resolvedAssociation];
   } else {
     [resolvedAssociation populateCrysonObjectFromJSONObject:jsonObject];
@@ -399,6 +420,7 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
       crysonUserTypes[attributeName] = attributeValue;
     } else {
       crysonAssociations[attributeName] = attributeValue;
+      crysonUnauthorizedAssociations[attributeName] = nil;
     }
   } else {
     crysonObject[attributeName] = [self coerceValue:attributeValue forAttribute:attributeName];
@@ -487,10 +509,14 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
 
     if (associationId instanceof Array) {
       if ([associationId count] > 0) {
-        if (crysonEntityAsyncProxy && [crysonEntityAsyncProxy withinAsyncOperation])  {
+        if (crysonEntityAsyncProxy && [crysonEntityAsyncProxy withinAsyncOperation]) {
           return [crysonEntityAsyncProxy loadAssociation:associationName byClass:associationClass andIds:associationId];
         }
-        crysonAssociations[associationName] = [session findSyncByClass:associationClass andIds:associationId fetch:nil];
+        var associations = [session findSyncByClass:associationClass andIds:associationId fetch:nil];
+        var unauthorizedEntities = _.filter(associations, function(e) { return ![e isAuthorized]; });
+        var authorizedEntities = _.filter(associations, function(e) { return [e isAuthorized]; });
+        crysonAssociations[associationName] = authorizedEntities;
+        crysonUnauthorizedAssociations[associationName] = unauthorizedEntities;
       } else {
         crysonAssociations[associationName] = [];
       }
@@ -499,7 +525,13 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
         if (crysonEntityAsyncProxy && [crysonEntityAsyncProxy withinAsyncOperation])  {
           return [crysonEntityAsyncProxy loadAssociation:associationName byClass:associationClass andId:associationId];
         }
-        crysonAssociations[associationName] = [session findSyncByClass:associationClass andId:associationId fetch:nil];
+        var association = [session findSyncByClass:associationClass andId:associationId fetch:nil];
+        if (![association isAuthorized]) {
+          crysonUnauthorizedAssociations[associationName] = association;
+          crysonAssociations[associationName] = nil;
+        } else {
+          crysonAssociations[associationName] = association;
+        }
       } else {
         crysonAssociations[associationName] = nil;
       }
@@ -541,12 +573,14 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
   for (var attributeName in crysonAssociations) {
     var associationValue = crysonAssociations[attributeName];
     if (associationValue instanceof Array) {
+      associationValue = associationValue.concat((crysonUnauthorizedAssociations[attributeName]) || []);
       var jsIdArray = [];
       for(var ix = 0;ix < associationValue.length;ix++) {
         jsIdArray[ix] = [associationValue[ix] id];
       }
       result[attributeName + "_cryson_ids"] = jsIdArray.sort(compareNumbers);
     } else {
+      associationValue = associationValue || crysonUnauthorizedAssociations[attributeName];
       result[attributeName + "_cryson_id"] = associationValue ? [associationValue id] : null;
     }
   }

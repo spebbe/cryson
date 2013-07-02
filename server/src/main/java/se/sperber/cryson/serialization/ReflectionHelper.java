@@ -20,6 +20,7 @@ package se.sperber.cryson.serialization;
 
 import com.google.gson.FieldAttributes;
 import com.mysql.jdbc.StringUtils;
+import org.hibernate.proxy.HibernateProxy;
 import org.springframework.stereotype.Component;
 import se.sperber.cryson.annotation.VirtualAttribute;
 
@@ -209,4 +210,52 @@ public class ReflectionHelper {
       return versionFields.get(0).getName();
     }
   }
+
+  public Long getPrimaryKey(Object entity) {
+    try {
+      if (entity instanceof HibernateProxy) {
+        return (Long)((HibernateProxy)entity).getHibernateLazyInitializer().getIdentifier();
+      } else {
+        try {
+          Method method = entity.getClass().getMethod("getId");
+          return (Long)method.invoke(entity);
+        } catch(NoSuchMethodException e) {
+          Field field = getField(entity, "id");
+          return (Long)field.get(entity);
+        }
+      }
+    } catch(Throwable t) {
+      throw new RuntimeException(t);
+    }
+  }
+
+  public void setPrimaryKey(Object entity, Long primaryKey) {
+    try {
+      try {
+        Method method = entity.getClass().getMethod("setId", Long.class);
+        method.invoke(entity, primaryKey);
+      } catch(NoSuchMethodException e) {
+        Field field = getField(entity, "id");
+        field.set(entity, primaryKey);
+      }
+    } catch(Throwable t) {
+      throw new RuntimeException(t);
+    }
+  }
+
+  Field getField(Object object, String fieldName) {
+    Field result = null;
+    Class klazz = object.getClass();
+    while(result == null && klazz != Object.class) {
+      try {
+        result = klazz.getDeclaredField(fieldName);
+      } catch (NoSuchFieldException e) {}
+      klazz = klazz.getSuperclass();
+    }
+    if (result != null) {
+      result.setAccessible(true);
+    }
+    return result;
+  }
+
 }

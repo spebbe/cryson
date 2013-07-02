@@ -19,21 +19,24 @@
 package se.sperber.cryson.testutil;
 
 import org.hibernate.envers.Audited;
+import org.springframework.security.core.Authentication;
+import se.sperber.cryson.security.Restrictable;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.ManyToOne;
+import javax.persistence.*;
+import java.io.Serializable;
 
 @Entity
 @Audited
-public class CrysonTestChildEntity {
+public class CrysonTestChildEntity implements Serializable, Restrictable {
 
   @Id @GeneratedValue
   private Long id;
 
   @ManyToOne
   private CrysonTestEntity parent;
+
+  @Transient
+  private transient boolean shouldBeReadable = true;
 
   public Long getId() {
     return id;
@@ -49,6 +52,24 @@ public class CrysonTestChildEntity {
 
   public void setParent(CrysonTestEntity parent) {
     this.parent = parent;
+  }
+
+  @Override
+  public boolean isReadableBy(Authentication authentication) {
+    return shouldBeReadable;
+  }
+
+  @Override
+  public boolean isWritableBy(Authentication authentication) {
+    return true;
+  }
+
+  public void setShouldBeReadable(boolean shouldBeReadable) {
+    this.shouldBeReadable = shouldBeReadable;
+  }
+
+  public boolean isShouldBeReadable() {
+    return shouldBeReadable;
   }
 
 }

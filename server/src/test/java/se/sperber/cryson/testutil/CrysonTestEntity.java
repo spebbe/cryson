@@ -51,6 +51,16 @@ public class CrysonTestEntity implements Serializable, Restrictable {
   @OneToMany(mappedBy = "parent")
   private Set<CrysonTestChildEntity> childEntities;
 
+  @Transient
+  private transient boolean shouldBeReadable = true;
+
+  public CrysonTestEntity() {}
+
+  public CrysonTestEntity(Long id) {
+    this.id = id;
+    this.name = name;
+  }
+
   public Long getId() {
     return id;
   }
@@ -90,11 +100,36 @@ public class CrysonTestEntity implements Serializable, Restrictable {
 
   @Override
   public boolean isReadableBy(Authentication authentication) {
-    return true;
+    return shouldBeReadable;
   }
 
   @Override
   public boolean isWritableBy(Authentication authentication) {
     return true;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+
+    CrysonTestEntity that = (CrysonTestEntity) o;
+
+    if (id != null ? !id.equals(that.id) : that.id != null) return false;
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    return id != null ? id.hashCode() : 0;
+  }
+
+  public void setShouldBeReadable(boolean shouldBeReadable) {
+    this.shouldBeReadable = shouldBeReadable;
+  }
+
+  public boolean isShouldBeReadable() {
+    return shouldBeReadable;
   }
 }

@@ -18,6 +18,11 @@
 
 package se.sperber.cryson.service;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -28,6 +33,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import se.sperber.cryson.exception.CrysonEntityNotFoundException;
@@ -36,6 +42,7 @@ import se.sperber.cryson.repository.CrysonRepository;
 import se.sperber.cryson.security.Restrictable;
 import se.sperber.cryson.serialization.CrysonSerializer;
 import se.sperber.cryson.serialization.ReflectionHelper;
+import se.sperber.cryson.serialization.UnauthorizedEntity;
 
 import javax.annotation.PostConstruct;
 import javax.persistence.Entity;
@@ -144,8 +151,8 @@ public class CrysonService {
     }
   }
 
-  public Response getEntitiesByIds(String entityName, List<Long> ids, Set<String> associationsToFetch) {
-    List<Object> entities = crysonRepository.findByIds(qualifiedEntityClassName(entityName), ids, associationsToFetch);
+  public Response getEntitiesByIds(final String entityName, List<Long> ids, Set<String> associationsToFetch) {
+    final List<Object> entities = crysonRepository.findByIds(qualifiedEntityClassName(entityName), ids, associationsToFetch);
     return Response.ok(crysonSerializer.serialize(entities, associationsToFetch)).build();
   }
 
@@ -199,13 +206,13 @@ public class CrysonService {
     Collection<JsonElement> sortedPersistedEntities = topologicallySortPersistedEntities(persistedEntities);
     for(JsonElement persistedEntityElement : sortedPersistedEntities) {
       Object entity = crysonSerializer.deserialize(persistedEntityElement, entityClass(persistedEntityElement), replacedTemporaryIds);
-      Long temporaryId = crysonSerializer.getPrimaryKey(entity);
+      Long temporaryId = reflectionHelper.getPrimaryKey(entity);
       if (temporaryId < 0) {
-        crysonSerializer.setPrimaryKey(entity, null);
+        reflectionHelper.setPrimaryKey(entity, null);
       }
       crysonRepository.persist(entity);
       refreshedPersistedEntities.add(entity);
-      Long replacementId = crysonSerializer.getPrimaryKey(entity);
+      Long replacementId = reflectionHelper.getPrimaryKey(entity);
       replacedTemporaryIds.put(temporaryId, replacementId);
     }
 
@@ -235,7 +242,7 @@ public class CrysonService {
     for(Field field : oneToOneFields) {
       Object associatedEntity = field.get(entity);
       if (associatedEntity != null) {
-        field.set(entity, crysonRepository.findById(crysonSerializer.getEntityClassName(associatedEntity), crysonSerializer.getPrimaryKey(associatedEntity), Collections.EMPTY_SET));
+        field.set(entity, crysonRepository.findById(crysonSerializer.getEntityClassName(associatedEntity), reflectionHelper.getPrimaryKey(associatedEntity), Collections.EMPTY_SET));
       }
     }
   }
@@ -245,13 +252,13 @@ public class CrysonService {
     List<Object> refreshedUpdatedEntities = new ArrayList<Object>(updatedEntities.size());
 
     for (Object persistedEntity : persistedEntities) {
-      Object refreshedPersistedEntity = crysonRepository.findById(crysonSerializer.getEntityClassName(persistedEntity), crysonSerializer.getPrimaryKey(persistedEntity), Collections.EMPTY_SET);
+      Object refreshedPersistedEntity = crysonRepository.findById(crysonSerializer.getEntityClassName(persistedEntity), reflectionHelper.getPrimaryKey(persistedEntity), Collections.EMPTY_SET);
       refreshedPersistedEntities.add(refreshedPersistedEntity);
       listenerNotificationBatch.entityCreated(refreshedPersistedEntity);
     }
 
     for (Object updatedEntity : updatedEntities) {
-      Object refreshedUpdatedEntity = crysonRepository.findById(crysonSerializer.getEntityClassName(updatedEntity), crysonSerializer.getPrimaryKey(updatedEntity), Collections.EMPTY_SET);
+      Object refreshedUpdatedEntity = crysonRepository.findById(crysonSerializer.getEntityClassName(updatedEntity), reflectionHelper.getPrimaryKey(updatedEntity), Collections.EMPTY_SET);
       refreshedUpdatedEntities.add(refreshedUpdatedEntity);
       listenerNotificationBatch.entityUpdated(refreshedUpdatedEntity);
     }
@@ -359,5 +366,17 @@ public class CrysonService {
 
   private Class entityClass(JsonElement entityElement) throws ClassNotFoundException {
     return entityClass(entityElement.getAsJsonObject().get("crysonEntityClass").getAsString());
+  }
+
+  void setCrysonSerializer(CrysonSerializer crysonSerializer) {
+    this.crysonSerializer = crysonSerializer;
+  }
+
+  void setCrysonRepository(CrysonRepository crysonRepository) {
+    this.crysonRepository = crysonRepository;
+  }
+
+  void setEntityClassesBySimpleName(Map<String, Class<?>> entityClassesBySimpleName) {
+    this.entityClassesBySimpleName = entityClassesBySimpleName;
   }
 }

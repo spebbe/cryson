@@ -18,10 +18,13 @@
 
 package se.sperber.cryson.serialization;
 
+import com.google.common.collect.Sets;
 import com.google.gson.*;
 import org.hibernate.proxy.HibernateProxy;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import se.sperber.cryson.security.Restrictable;
 
 import javax.annotation.PostConstruct;
 
@@ -44,6 +47,8 @@ public class CrysonSerializer {
   private final Map<Class<?>, Set<Field>> lazyFieldsCache = new ConcurrentHashMap<Class<?>, Set<Field>>();
 
   private final Map<Class<?>, Set<Field>> userTypeFieldsCache = new ConcurrentHashMap<Class<?>, Set<Field>>();
+
+  private final Set<String> allowedUnauthorizedAttributeNames = Sets.newHashSet("id", "crysonEntityClass");
 
   @Autowired
   private ReflectionHelper reflectionHelper;
@@ -90,6 +95,11 @@ public class CrysonSerializer {
     return serialize(object, Collections.<String>emptySet());
   }
 
+  public String serializeUnauthorizedEntity(String entityName, Long id) {
+    UnauthorizedEntity entity = new UnauthorizedEntity(entityName, id);
+    return gson.toJson(entity);
+  }
+
   public String serializeWithoutAugmentation(Object object) {
     return gson.toJson(object);
   }
@@ -120,9 +130,16 @@ public class CrysonSerializer {
       } else {
         jsonElement.getAsJsonObject().add("crysonEntityClass", new JsonPrimitive(object.getClass().getSimpleName()));
 
+        if (object instanceof Restrictable) {
+          if (!((Restrictable)object).isReadableBy(SecurityContextHolder.getContext().getAuthentication())) {
+            transformJsonObjectToUnauthorizedEntity(jsonElement.getAsJsonObject());
+            return;
+          }
+        }
+
         for(Map.Entry<String, JsonElement> member : jsonElement.getAsJsonObject().entrySet()) {
           if (member.getValue().isJsonObject() || member.getValue().isJsonArray()) {
-            Field field = getField(object, member.getKey());
+            Field field = reflectionHelper.getField(object, member.getKey());
             field.setAccessible(true);
             augmentJsonElement(field.get(object), member.getValue(), subAssociationsToInclude(associationsToInclude, member.getKey()));
           }
@@ -155,11 +172,11 @@ public class CrysonSerializer {
             if (fieldValue instanceof Collection) {
               JsonArray primaryKeyArray = new JsonArray();
               for(Object subElement : (Collection)fieldValue) {
-                primaryKeyArray.add(new JsonPrimitive(getPrimaryKey(subElement)));
+                primaryKeyArray.add(new JsonPrimitive(reflectionHelper.getPrimaryKey(subElement)));
               }
               jsonElement.getAsJsonObject().add(field.getName() + "_cryson_ids", primaryKeyArray);
             } else {
-              jsonElement.getAsJsonObject().addProperty(field.getName() + "_cryson_id", getPrimaryKey(fieldValue));
+              jsonElement.getAsJsonObject().addProperty(field.getName() + "_cryson_id", reflectionHelper.getPrimaryKey(fieldValue));
             }
           } else {
             jsonElement.getAsJsonObject().add(field.getName() + "_cryson_id", JsonNull.INSTANCE);
@@ -169,6 +186,15 @@ public class CrysonSerializer {
     } catch(Throwable t) {
       throw new RuntimeException(t);
     }
+  }
+
+  private void transformJsonObjectToUnauthorizedEntity(JsonObject jsonObject) {
+    for(Map.Entry<String, JsonElement> entry : jsonObject.entrySet()) {
+      if (!allowedUnauthorizedAttributeNames.contains(entry.getKey())) {
+        jsonObject.remove(entry.getKey());
+      }
+    }
+    jsonObject.addProperty("crysonUnauthorized", true);
   }
 
   private Set<String> subAssociationsToInclude(Set<String> associationsToInclude, String association) {
@@ -194,84 +220,37 @@ public class CrysonSerializer {
     }
   }
 
-  public Long getPrimaryKey(Object entity) {
-    try {
-      if (entity instanceof HibernateProxy) {
-        return (Long)((HibernateProxy)entity).getHibernateLazyInitializer().getIdentifier();
-      } else {
-        try {
-          Method method = entity.getClass().getMethod("getId");
-          return (Long)method.invoke(entity);
-        } catch(NoSuchMethodException e) {
-          Field field = getField(entity, "id");
-          return (Long)field.get(entity);
-        }
-      }
-    } catch(Throwable t) {
-      throw new RuntimeException(t);
-    }
-  }
-  
-  public void setPrimaryKey(Object entity, Long primaryKey) {
-    try {
-      try {
-        Method method = entity.getClass().getMethod("setId", Long.class);
-        method.invoke(entity, primaryKey);
-      } catch(NoSuchMethodException e) {
-        Field field = getField(entity, "id");
-        field.set(entity, primaryKey);
-      }
-    } catch(Throwable t) {
-      throw new RuntimeException(t);
-    }
-  }
-  
-  private Field getField(Object object, String fieldName) {
-    Field result = null;
-    Class klazz = object.getClass();
-    while(result == null && klazz != Object.class) {
-      try {
-        result = klazz.getDeclaredField(fieldName);
-      } catch (NoSuchFieldException e) {}
-      klazz = klazz.getSuperclass();
-    }
-    if (result != null) {
-      result.setAccessible(true);
-    }
-    return result;
-  }
-
   private <T> T augmentEntity(T object, JsonElement jsonElement, Map<Long, Long> replacedTemporaryIds) {
     try {
       Set<Map.Entry<String,JsonElement>> attributes = jsonElement.getAsJsonObject().entrySet();
       for(Map.Entry<String,JsonElement> attribute : attributes) {
         if (attribute.getKey().endsWith("_cryson_id")) {
           String attributeName = attribute.getKey().split("_cryson_id")[0];
-          Field field = getField(object, attributeName);
+          Field field = reflectionHelper.getField(object, attributeName);
           if (field != null) {
             if (attribute.getValue() != JsonNull.INSTANCE) {
               Object placeHolderObject = field.getType().newInstance();
-              setPrimaryKey(placeHolderObject, primaryKeyForReplacementObject(attribute.getValue().getAsLong(), replacedTemporaryIds));
+              reflectionHelper.setPrimaryKey(placeHolderObject, primaryKeyForReplacementObject(attribute.getValue().getAsLong(), replacedTemporaryIds));
               field.set(object, placeHolderObject);
             }
           }
         } else if (attribute.getKey().endsWith("_cryson_ids")) {
           String attributeName = attribute.getKey().split("_cryson_ids")[0];
-          Field field = getField(object, attributeName);
+          Field field = reflectionHelper.getField(object, attributeName);
           if (field != null) {
             Iterator<JsonElement> attributeIterator = attribute.getValue().getAsJsonArray().iterator();
             Collection<Object> placeHolderObjects = emptyCollectionForField(field);
             while(attributeIterator.hasNext()) {
               JsonElement attributeValue = attributeIterator.next();
               Object placeHolderObject = ((Class)((ParameterizedType)(field.getGenericType())).getActualTypeArguments()[0]).newInstance();
-              setPrimaryKey(placeHolderObject, primaryKeyForReplacementObject(attributeValue.getAsLong(), replacedTemporaryIds));
+              reflectionHelper.setPrimaryKey(placeHolderObject, primaryKeyForReplacementObject(attributeValue.getAsLong(), replacedTemporaryIds));
               placeHolderObjects.add(placeHolderObject);
             }
             field.set(object, placeHolderObjects);
           }
         } else if (attribute.getKey().endsWith("_cryson_usertype")) {
           String attributeName = attribute.getKey().split("_cryson_usertype")[0];
-          Field field = getField(object, attributeName);
+          Field field = reflectionHelper.getField(object, attributeName);
           if (field != null && Map.class.isAssignableFrom(field.getType())) {
             Map<Object, Object> placeHolderObjects = new HashMap<Object, Object>();
             for (Map.Entry<String, JsonElement> valueEntry : attribute.getValue().getAsJsonObject().entrySet()) {

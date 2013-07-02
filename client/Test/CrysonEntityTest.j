@@ -1,14 +1,14 @@
 /*
   Cryson
-  
+
   Copyright 2011-2012 Björn Sperber (cryson@sperber.se)
-  
+
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
-  
+
   http://www.apache.org/licenses/LICENSE-2.0
-  
+
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -75,6 +75,20 @@ if (typeof (_) == 'undefined') {
   [OJAssert assert:@"inner" equals:[[entity something] name]];
 }
 
+- (void)testEmbeddedToOneAssociationWithUnauthorizedEntity
+{
+  var entity = [self givenTestEntityWithJSObject:
+             {"id":1,
+              "name":"outer",
+              "something":{"id":2,
+               "crysonEntityClass":"TestEntity",
+               "crysonUnauthorized":true}}];
+
+  [OJAssert assert:@"outer" equals:[entity name]];
+  [OJAssert assertNull:[entity something]];
+  [OJAssert assert:2 equals:[entity toJSObject].something_cryson_id];
+}
+
 - (void)testEmbeddedToManyAssociation
 {
   var entity = [self givenTestEntityWithJSObject:
@@ -87,6 +101,25 @@ if (typeof (_) == 'undefined') {
 
   [OJAssert assert:@"outer" equals:[entity name]];
   [OJAssert assert:@"inner" equals:[[[entity something] objectAtIndex:0] name]];
+}
+
+- (void)testEmbeddedToManyAssociationWithUnauthorizedEntity
+{
+  var entity = [self givenTestEntityWithJSObject:
+             {"id":1,
+              "name":"outer",
+              "something":[
+                {"id":2,
+                 "crysonEntityClass":"TestEntity",
+                 "crysonUnauthorized":true},
+                {"id":3,
+                 "name":"inner",
+                 "something":nil,
+                 "crysonEntityClass":"TestEntity"}]}];
+
+  [OJAssert assert:@"outer" equals:[entity name]];
+  [OJAssert assert:1 equals:[entity countOfSomething]];
+  [OJAssert assert:[2, 3] equals:[entity toJSObject].something_cryson_ids];
 }
 
 - (void)testLazilyResolvedToOneAssociation
@@ -107,6 +140,22 @@ if (typeof (_) == 'undefined') {
   [OJAssert assert:@"inner" equals:[[entity something] name]];
 }
 
+- (void)testLazilyResolvedToOneAssociationWithUnauthorizedEntity
+{
+  var entity = [self givenTestEntityWithJSObject:
+             {"id":1,
+              "name":"outer",
+              "something_cryson_id":2}];
+
+  [[entity session] selector:@selector(findSyncByClass:andId:fetch:)
+                     returns:[[CrysonUnauthorizedEntity alloc] initWithJSObject:{"id":2, "crysonUnauthorized":YES} session:[entity session]]
+                   arguments:[TestEntity, 2, nil]];
+
+  [OJAssert assert:@"outer" equals:[entity name]];
+  [OJAssert assertNull:[entity something]];
+  [OJAssert assert:2 equals:[entity toJSObject].something_cryson_id];
+}
+
 - (void)testLazilyResolvedToManyAssociation
 {
   var innerEntity = [self givenTestEntityWithJSObject:
@@ -123,6 +172,31 @@ if (typeof (_) == 'undefined') {
 
   [OJAssert assert:@"outer" equals:[entity name]];
   [OJAssert assert:@"inner" equals:[[[entity something] objectAtIndex:0] name]];
+}
+
+- (void)testLazilyResolvedToManyAssociationWithUnauthorizedEntity
+{
+  var innerEntity = [self givenTestEntityWithJSObject:
+             {"id":2,
+              "name":"inner",
+              "something_cryson_id":nil}];
+
+  var entity = [self givenTestEntityWithJSObject:
+             {"id":1,
+              "name":"outer",
+              "something_cryson_ids":[2, 3]}];
+
+  [[entity session] selector:@selector(findSyncByClass:andIds:fetch:)
+                     returns:[
+                       innerEntity,
+                       [[CrysonUnauthorizedEntity alloc] initWithJSObject:{"id":3, "crysonUnauthorized":YES} session:[entity session]]
+                     ]
+                   arguments:[TestEntity, [2, 3], nil]];
+
+  [OJAssert assert:@"outer" equals:[entity name]];
+  [OJAssert assert:@"inner" equals:[[[entity something] objectAtIndex:0] name]];
+  [OJAssert assert:1 equals:[entity countOfSomething]];
+  [OJAssert assert:[2,3] equals:[entity toJSObject].something_cryson_ids];
 }
 
 - (void)testDirtyCheck
@@ -148,15 +222,15 @@ if (typeof (_) == 'undefined') {
 
   [entity revert];
 
-  [OJAssert assert:@"test" equals:[entity name]];  
-  [OJAssert assertFalse:[entity dirty]];  
+  [OJAssert assert:@"test" equals:[entity name]];
+  [OJAssert assertFalse:[entity dirty]];
 }
 
 - (void)testBindings
 {
   var entity = [self givenTestEntityWithJSObject:{"id":1, "name":"test"}];
   var listener = [self givenTestEntityWithJSObject:{"id":2, "name":"test"}];
-  
+
   [listener bind:"name" toObject:entity withKeyPath:"name" options:nil];
 
   [entity setName:"test1"];
@@ -170,7 +244,7 @@ if (typeof (_) == 'undefined') {
 {
   var entity = [self givenTestEntityWithJSObject:{"id":1, "name":"test"}];
   var listener = [self givenTestEntityWithJSObject:{"id":2, "shouldBeDirty":"false"}];
-  
+
   [listener bind:"shouldBeDirty" toObject:entity withKeyPath:"dirty" options:nil];
 
   [OJAssert assert:"false" equals:[listener shouldBeDirty]];
@@ -183,7 +257,7 @@ if (typeof (_) == 'undefined') {
 {
   var entity = [self givenTestEntityWithJSObject:{"id":1, "something":[]}];
   var listener = [self givenTestEntityWithJSObject:{"id":2, "shouldBeDirty":"false"}];
-  
+
   [listener bind:"shouldBeDirty" toObject:entity withKeyPath:"dirty" options:nil];
 
   [OJAssert assert:"false" equals:[listener shouldBeDirty]];
@@ -207,7 +281,7 @@ if (typeof (_) == 'undefined') {
   var sessionMock = moq();
   [sessionMock selector:@selector(findDefinitionForClass:) returns:definition arguments:[TestEntity]];
   [sessionMock selector:@selector(findCachedByClass:andId:) returns:nil];
-  
+
   return [[TestEntity alloc] initWithJSObject:jsObject session:sessionMock];
 }
 

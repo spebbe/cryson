@@ -23,6 +23,7 @@
 @import "CrysonSessionContext.j"
 @import "CrysonSubSession.j"
 @import "CrysonMutableEntitySet.j"
+@import "CrysonUnauthorizedEntity.j"
 
 /*!
   @class CrysonSession
@@ -235,6 +236,9 @@
 
 - (CrysonEntity)materializeEntity:(JSObject)entityJSObject
 {
+  if (entityJSObject.crysonUnauthorized) {
+    return [[CrysonUnauthorizedEntity alloc] initWithJSObject:entityJSObject session:self];
+  }
   var entityClass = CPClassFromString(entityJSObject.crysonEntityClass);
   var cachedEntity = [self findCachedByClass:entityClass andId:entityJSObject.id];
   if (cachedEntity) {
@@ -754,7 +758,7 @@ If the commit failed, the following delegate method is instead called:
 {
   [self finishLoadOperationForDelegate:[context delegate]];
   var entityClass = [context entityClass];
-  var materializedEntities = [self materializeEntities:entities];
+  var materializedEntities = [self filterEntities:[self materializeEntities:entities]];
   [[context delegate] crysonSession:self foundAll:materializedEntities byClass:entityClass];
 }
 
@@ -770,7 +774,7 @@ If the commit failed, the following delegate method is instead called:
 {
   [self finishLoadOperationForDelegate:[context delegate]];
   var namedQuery = [context namedQuery];
-  var materializedEntities = [self materializeEntities:entities];
+  var materializedEntities = [self filterEntities:[self materializeEntities:entities]];
   [[context delegate] crysonSession:self found:materializedEntities byNamedQuery:namedQuery];
 }
 
@@ -786,7 +790,7 @@ If the commit failed, the following delegate method is instead called:
 {
   [self finishLoadOperationForDelegate:[context delegate]];
   var entityClass = [context entityClass];
-  var materializedEntities = [self materializeEntities:entities];
+  var materializedEntities = [self filterEntities:[self materializeEntities:entities]];
   [[context delegate] crysonSession:self found:materializedEntities byExample:[context example]];
 }
 
@@ -803,7 +807,13 @@ If the commit failed, the following delegate method is instead called:
   [self finishLoadOperationForDelegate:[context delegate]];
   var entityClass = [context entityClass];
   var materializedEntity = [self materializeEntity:entity];
-  [[context delegate] crysonSession:self found:materializedEntity byClass:entityClass];
+  if (![materializedEntity isAuthorized]) {
+    if([[context delegate] respondsToSelector:@selector(crysonSession:failedToAuthorizeByClass:andId:)]) {
+      [[context delegate] crysonSession:self failedToAuthorizeByClass:entityClass andId:[context entityId]];
+    }
+  } else {
+    [[context delegate] crysonSession:self found:materializedEntity byClass:entityClass];
+  }
 }
 
 - (void)findByClassAndIdFailed:(CPString)errorString statusCode:(CPNumber)statusCode context:(CrysonSessionContext)context
@@ -822,7 +832,7 @@ If the commit failed, the following delegate method is instead called:
   if (!(entities instanceof Array)) {
     entitiesArray = [entitiesArray];
   }
-  var materializedEntities = [self materializeEntities:entitiesArray];
+  var materializedEntities = [self filterEntities:[self materializeEntities:entitiesArray]];
   [[context delegate] crysonSession:self found:materializedEntities byClass:entityClass andIds:[context entityId]];
 }
 
@@ -980,6 +990,17 @@ If the commit failed, the following delegate method is instead called:
   }
 
   return [cachedEntities arrayByAddingObjectsFromArray:foundEntities];
+}
+
+@end
+
+@implementation CrysonSession (Authorization)
+
+- (CPArray)filterEntities:(CPArray)entities
+{
+  return _.filter(entities, function(entity) {
+    return [entity isAuthorized];
+  });
 }
 
 @end
