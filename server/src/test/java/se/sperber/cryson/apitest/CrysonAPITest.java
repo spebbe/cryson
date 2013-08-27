@@ -18,7 +18,12 @@
 
 package se.sperber.cryson.apitest;
 
-import com.google.gson.JsonElement;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
+import java.net.URLEncoder;
+
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpStatus;
@@ -33,14 +38,13 @@ import org.hibernate.SessionFactory;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
 import se.sperber.cryson.CrysonServer;
 import se.sperber.cryson.initialization.Application;
 import se.sperber.cryson.serialization.CrysonSerializer;
 import se.sperber.cryson.testutil.CrysonTestEntity;
 
-import java.net.URLEncoder;
-
-import static org.junit.Assert.*;
+import com.google.gson.JsonElement;
 
 public class CrysonAPITest {
 
