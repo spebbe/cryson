@@ -87,7 +87,13 @@
 
   var response = [CPURLConnection sendSynchronousRequest:request returningResponse:nil];
   if (response && [response rawString]) {
-    return [[response rawString] objectFromJSON];
+    try {
+      return [[response rawString] objectFromJSON];
+    } catch(ex) {
+      if(console && console.error) {
+        console.error("RequestHelper#syncRequestWithVerb:url:object: failed to convert response from "+url+" to JSON.", response);
+      }
+    }
   }
   return nil;
 }
