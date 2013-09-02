@@ -76,6 +76,7 @@ public class JettySpringHelper {
     public static DefaultListableBeanFactory defaultListableBeanFactory;
 
     public ResourceComponentProvider getComponentProvider(final Class<?> c) {
+      
       return new ResourceComponentProvider() {
 
         public Object getInstance() {

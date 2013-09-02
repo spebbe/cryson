@@ -1,7 +1,7 @@
 /*
   Cryson
   
-  Copyright 2011-2012 Björn Sperber (cryson@sperber.se)
+  Copyright 2011-2012 Bj��rn Sperber (cryson@sperber.se)
   
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -18,29 +18,39 @@
 
 package se.sperber.cryson.service;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.PostConstruct;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
+
 import org.apache.log4j.Logger;
-import org.hibernate.OptimisticLockException;
-import org.hibernate.StaleObjectStateException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
-import org.springframework.orm.hibernate3.HibernateOptimisticLockingFailureException;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
-import se.sperber.cryson.exception.CrysonEntityConflictException;
-import se.sperber.cryson.exception.CrysonException;
+
 import se.sperber.cryson.listener.CrysonListener;
 import se.sperber.cryson.listener.ListenerNotificationBatch;
 import se.sperber.cryson.serialization.CrysonSerializer;
 
-import javax.annotation.PostConstruct;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
-import java.io.Serializable;
-import java.text.ParseException;
-import java.util.*;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 @Service
 @Path("/")
@@ -68,28 +78,19 @@ public class CrysonFrontendService {
   
   @GET
   @Path("definition/{entity_name}")
-  public Response getEntityDefinition(@PathParam("entity_name") String entityName) {
-    try {
+  public Response getEntityDefinition(@PathParam("entity_name") String entityName) throws Throwable {
       return crysonService.getEntityDefinition(entityName);
-    } catch(Throwable t) {
-      return translateThrowable(t);
-    }
   }
 
   @GET
   @Path("definitions")
-  public Response getEntityDefinitions() {
-    try {
+  public Response getEntityDefinitions() throws Throwable {
       return crysonService.getEntityDefinitions();
-    } catch(Throwable t) {
-      return translateThrowable(t);
-    }
   }
 
   @GET
   @Path("{entity_name}/{rawIds: [0-9,]+}")
   public Response getEntityById(@PathParam("entity_name") String entityName, @PathParam("rawIds") String rawIds, @QueryParam("fetch") String rawAssociationsToFetch) {
-    try {
       Set<String> associationsToFetch = splitAssociationsToFetch(rawAssociationsToFetch);
 
       String[] stringIds = rawIds.split(",");
@@ -102,75 +103,51 @@ public class CrysonFrontendService {
         }
         return crysonService.getEntitiesByIds(entityName, ids, associationsToFetch);
       }
-    } catch(Throwable t) {
-      return translateThrowable(t);
-    }
   }
 
   @GET
   @Path("{entity_name}")
-  public Response getEntitiesByExample(@PathParam("entity_name") String entityName, @QueryParam("example") String exampleJson, @QueryParam("fetch") String rawAssociationsToFetch) {
-    try {
+  public Response getEntitiesByExample(@PathParam("entity_name") String entityName, @QueryParam("example") String exampleJson, @QueryParam("fetch") String rawAssociationsToFetch) throws Throwable {
       Set<String> associationsToFetch = splitAssociationsToFetch(rawAssociationsToFetch);
       return crysonService.getEntitiesByExample(entityName, exampleJson, associationsToFetch);
-    } catch(Throwable t) {
-      return translateThrowable(t);
-    }
   }
 
   @GET
   @Path("{entity_name}/all")
   public Response getAllEntities(@PathParam("entity_name") String entityName, @QueryParam("fetch") String rawAssociationsToFetch) {
-    try {
       Set<String> associationsToFetch = splitAssociationsToFetch(rawAssociationsToFetch);
       return crysonService.getAllEntities(entityName, associationsToFetch);
-    } catch(Throwable t) {
-      return translateThrowable(t);
-    }
   }
 
   @GET
   @Path("namedQuery/{query_name}")
   public Response getEntitiesByNamedQuery(@PathParam("query_name") String queryName, @Context UriInfo uriInfo, @QueryParam("fetch") String rawAssociationsToFetch) {
-    try {
       Set<String> associationsToFetch = splitAssociationsToFetch(rawAssociationsToFetch);
       MultivaluedMap<String,String> queryParameters = uriInfo.getQueryParameters();
       queryParameters.remove("fetch");
       return crysonService.getEntitiesByNamedQuery(queryName, queryParameters, associationsToFetch);
-    } catch(Throwable t) {
-      return translateThrowable(t);
-    }
   }
 
   @POST
   @Path("namedQuery/{query_name}")
   public Response getEntitiesByNamedQueryPost(@PathParam("query_name") String queryName, @Context UriInfo uriInfo, @QueryParam("fetch") String rawAssociationsToFetch, String json) {
-    try {
       JsonElement parameters = crysonSerializer.parse(json);
       Set<String> associationsToFetch = splitAssociationsToFetch(rawAssociationsToFetch);
       return crysonService.getEntitiesByNamedQueryJson(queryName, associationsToFetch, parameters);
-    } catch(Throwable t) {
-      return translateThrowable(t);
-    }
   }
 
   @PUT
   @Path("{entity_name}")
-  public Response createEntity(@Context UriInfo uriInfo, @Context HttpHeaders httpHeaders, @PathParam("entity_name") String entityName, String json) {
-    try {
+  public Response createEntity(@Context UriInfo uriInfo, @Context HttpHeaders httpHeaders, @PathParam("entity_name") String entityName, String json) throws Throwable {
       ListenerNotificationBatch listenerNotificationBatch = new ListenerNotificationBatch(uriInfo, httpHeaders);
       Response response = crysonService.createEntity(entityName, json, listenerNotificationBatch);
       notifyCommit(listenerNotificationBatch);
       return response;
-    } catch(Throwable t) {
-      return translateThrowable(t);
-    }
   }
 
   @POST
   @Path("commit")
-  public Response commit(@Context UriInfo uriInfo, @Context HttpHeaders httpHeaders, String json) {
-    try {
+  public Response commit(@Context UriInfo uriInfo, @Context HttpHeaders httpHeaders, String json) throws Throwable {
       ListenerNotificationBatch listenerNotificationBatch = new ListenerNotificationBatch(uriInfo, httpHeaders);
       JsonElement committedEntities = crysonSerializer.parse(json);
       crysonService.validatePermissions(committedEntities);
@@ -182,20 +159,13 @@ public class CrysonFrontendService {
 
       notifyCommit(listenerNotificationBatch);
       return response;
-    } catch(Throwable t) {
-      return translateThrowable(t);
-    }
   }
   
   public Response commitEntity(Object entity, UriInfo uriInfo, HttpHeaders httpHeaders) {
-    try {
       ListenerNotificationBatch listenerNotificationBatch = new ListenerNotificationBatch(uriInfo, httpHeaders);
       Response response = crysonService.commitEntity(entity, listenerNotificationBatch);
       notifyCommit(listenerNotificationBatch);
       return response;
-    } catch(Throwable t) {
-      return translateThrowable(t);
-    }
   }
 
   private void notifyCommit(ListenerNotificationBatch listenerNotificationBatch) {
@@ -208,35 +178,6 @@ public class CrysonFrontendService {
     }
   }
 
-  private Response translateCrysonException(CrysonException e) {
-    String serializedMessage = crysonSerializer.serializeWithoutAugmentation(e.getSerializableMessage());
-    return Response.status(e.getStatusCode()).entity(serializedMessage).build();
-  }
-  
-  private Response translateThrowable(Throwable t) {
-    logger.error("Error", t);
-    if (t instanceof CrysonException) {
-      return translateCrysonException((CrysonException)t);
-    } else if (t instanceof OptimisticLockException || t instanceof HibernateOptimisticLockingFailureException || t instanceof StaleObjectStateException) {
-      return translateCrysonException(new CrysonEntityConflictException("Optimistic locking failed", t));
-    } else if (t instanceof AccessDeniedException) {
-      return Response.status(Response.Status.UNAUTHORIZED).entity(buildJsonMessage(t.getMessage())).build();
-    } else if (t instanceof ParseException) {
-      return Response.status(Response.Status.BAD_REQUEST).entity(buildJsonMessage(t.getMessage())).build();
-    } else {
-      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(buildJsonMessage(t.getMessage())).build();
-    }
-  }
-
-  private String buildJsonMessage(String message) {
-    Map<String, Serializable> messageObject = new HashMap<String, Serializable>();
-    if (message == null || message.equals("")) {
-      messageObject.put("message", "Unclassified error");
-    } else {
-      messageObject.put("message", message);
-    }
-    return crysonSerializer.serializeWithoutAugmentation(messageObject);
-  }
 
   private Set<String> splitAssociationsToFetch(String rawAssociationsToFetch) {
     if (rawAssociationsToFetch == null || rawAssociationsToFetch.equals("")) {
