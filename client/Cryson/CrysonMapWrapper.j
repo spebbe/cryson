@@ -39,7 +39,7 @@
 
 - (void)replaceEntries:(CrysonMapWrapper)aMapWrapper
 {
-  attributes = _.clone([aMapWrapper attributes]);
+  attributes = JSON.parse(JSON.stringify([aMapWrapper attributes]));
 }
 
 - (JSObject)toJSObject
