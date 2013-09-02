@@ -23,6 +23,8 @@
 @import "CrysonMapWrapper.j"
 @import "CrysonEntityAsyncProxy.j"
 
+@class CrysonUnauthorizedEntity
+
 function compareNumbers(a,b){
   return a-b;
 }
@@ -596,9 +598,7 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
 
 - (CPString)attributeName:(CPString)rawAttributeName
 {
-  return [[[rawAttributeName stringByReplacingOccurrencesOfString:"_cryson_ids" withString:""]
-                               stringByReplacingOccurrencesOfString:"_cryson_id" withString:""]
-                                 stringByReplacingOccurrencesOfString:"_cryson_usertype" withString:""];
+  return rawAttributeName.replace("_cryson_ids", "").replace("_cryson_id", "").replace("_cryson_usertype", "");
 }
 
 /*!

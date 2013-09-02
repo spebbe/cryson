@@ -29,3 +29,4 @@
 @import "CrysonMapWrapper.j"
 @import "RemoteService.j"
 @import "CrysonSubSession.j"
+@import "CrysonUnauthorizedEntity.j"
