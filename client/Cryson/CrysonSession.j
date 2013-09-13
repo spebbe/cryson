@@ -23,7 +23,10 @@
 @import "CrysonSessionContext.j"
 @import "CrysonSubSession.j"
 @import "CrysonMutableEntitySet.j"
-@import "CrysonUnauthorizedEntity.j"
+
+@global _
+
+@class CrysonUnauthorizedEntity
 
 /*!
   @class CrysonSession

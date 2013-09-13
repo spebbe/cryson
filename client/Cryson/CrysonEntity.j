@@ -23,6 +23,8 @@
 @import "CrysonMapWrapper.j"
 @import "CrysonEntityAsyncProxy.j"
 
+@global _
+
 @class CrysonUnauthorizedEntity
 
 function compareNumbers(a,b){
@@ -357,32 +359,37 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
   }
 }
 
-- (CPValidationResult)_validateValue:(id)attributeValue forAttribute:(CPString)attributeName
+- (BOOL)_validateValue:(id)attributeValueRef forAttribute:(CPString)attributeName
 {
-  var attributeType = [cachedDefinition objectForKey:attributeName];
+  var attributeType = [cachedDefinition objectForKey:attributeName],
+      attributeValue = @deref(attributeValueRef);
 
   if ((attributeValue == null || (attributeValue === "" && attributeType != "String")) &&
       [self _attributeIsNullable:attributeType]) {
-    return [CPValidationResult validationResultWithValue:null valid:YES];
+    @deref(attributeValueRef) = null;
+    return YES;
   }
 
   if ([NumberTypes containsObject:attributeType]) {
     var coercedNumber = +attributeValue;
     if (_.isNaN(coercedNumber)) {
-      return [CPValidationResult validationResultWithValue:crysonObject[attributeName] valid:YES];
+      @deref(attributeValueRef) = crysonObject[attributeName];
+      return YES;
     } else {
-      return [CPValidationResult validationResultWithValue:coercedNumber valid:YES];
+      @deref(attributeValueRef) = coercedNumber;
+      return YES;
     }
   } else if (attributeType == "Date") {
     if (attributeValue.isa == CPDate) {
-      return [CPValidationResult validationResultWithValue:attributeValue valid:YES];
+      return YES;
     }
 
     try {
-      return [CPValidationResult validationResultWithValue:[[CPDate alloc] initWithString:attributeValue] valid:YES];
+      @deref(attributeValueRef) = [[CPDate alloc] initWithString:attributeValue];
+      return YES;
     } catch (e) {
-      var date = [self _reverseCoerceValue:attributeName];
-      return [CPValidationResult validationResultWithValue:date valid:YES];
+      @deref(attributeValueRef) = [self _reverseCoerceValue:attributeName];
+      return YES;
     }
   }
 
