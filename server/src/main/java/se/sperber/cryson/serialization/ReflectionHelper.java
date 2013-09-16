@@ -38,6 +38,9 @@ public class ReflectionHelper {
   private ConcurrentMap<Field, Boolean> lazyFieldCache = new ConcurrentHashMap<Field, Boolean>();
   private ConcurrentMap<Class, List<Field>> versionFieldCache = new ConcurrentHashMap<Class, List<Field>>();
   private ConcurrentMap<Class, List<Field>> oneToOneFieldCache = new ConcurrentHashMap<Class, List<Field>>();
+  private ConcurrentMap<Class, Set<Method>> virtualAttributeGetterCache = new ConcurrentHashMap<Class, Set<Method>>();
+  private ConcurrentMap<Class, Method> primaryKeyGetterCache = new ConcurrentHashMap<Class, Method>();
+  private ConcurrentMap<Class, Method> primaryKeySetterCache = new ConcurrentHashMap<Class, Method>();
 
   public boolean isLazyField(Field field) {
     if (lazyFieldCache.containsKey(field)) {
@@ -139,6 +142,9 @@ public class ReflectionHelper {
   }
 
   public Set<Method> getAllDeclaredVirtualAttributeGetters(Class klazz) {
+    if (virtualAttributeGetterCache.containsKey(klazz)) {
+      return virtualAttributeGetterCache.get(klazz);
+    }
     Class currentKlazz = klazz;
     Set<Method> methods = new HashSet<Method>();
     while(currentKlazz != Object.class) {
@@ -150,6 +156,7 @@ public class ReflectionHelper {
       }
       currentKlazz = currentKlazz.getSuperclass();
     }
+    virtualAttributeGetterCache.put(klazz, methods);
     return methods;
   }
 
@@ -217,7 +224,11 @@ public class ReflectionHelper {
         return (Long)((HibernateProxy)entity).getHibernateLazyInitializer().getIdentifier();
       } else {
         try {
-          Method method = entity.getClass().getMethod("getId");
+          Method method = primaryKeyGetterCache.get(entity.getClass());
+          if (method == null) {
+            method = entity.getClass().getMethod("getId");
+            primaryKeyGetterCache.put(entity.getClass(), method);
+          }
           return (Long)method.invoke(entity);
         } catch(NoSuchMethodException e) {
           Field field = getField(entity, "id");
@@ -232,7 +243,11 @@ public class ReflectionHelper {
   public void setPrimaryKey(Object entity, Long primaryKey) {
     try {
       try {
-        Method method = entity.getClass().getMethod("setId", Long.class);
+        Method method = primaryKeySetterCache.get(entity.getClass());
+        if (method == null) {
+          method = entity.getClass().getMethod("setId", Long.class);
+          primaryKeySetterCache.put(entity.getClass(), method);
+        }
         method.invoke(entity, primaryKey);
       } catch(NoSuchMethodException e) {
         Field field = getField(entity, "id");
