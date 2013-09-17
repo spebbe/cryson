@@ -21,13 +21,7 @@ if (typeof (_) == 'undefined') {
   _ = exports._;
 }
 @import <OJMoq/OJMoq.j>
-
-@implementation TestEntity : CrysonEntity
-{
-}
-
-@end
-
+@import "TestEntity.j"
 
 @implementation CrysonSessionTest : OJTestCase
 {
@@ -176,6 +170,7 @@ if (typeof (_) == 'undefined') {
   var session = [self givenCrysonSessionWithRemoteService:remoteService andDelegate:delegateMock];
   [session setCrysonDefinitionRepository:[self givenCrysonDefinitionRepository]];
   [session persist:testEntity];
+
   [OJAssert assert:-1 equals:[testEntity id]];
   [OJAssert assert:@"committed" equals:[testEntity name]];
   [OJAssert assertTrue:[testEntity dirty]];
@@ -213,6 +208,7 @@ if (typeof (_) == 'undefined') {
 {
   var delegateWasCalled = NO;
   var delegateMock = moq();
+  var testEntity = [self givenTestEntity];
   [delegateMock selector:@selector(crysonSession:dirtyDidChangeForEntity:) callback:function(args /* crysonSession, dirtyObject */) {
       [OJAssert assert:testEntity equals:args[1]];
       [OJAssert assertTrue:[args[1] dirty]];
@@ -220,7 +216,6 @@ if (typeof (_) == 'undefined') {
     }];
 
   var testSession = [self givenCrysonSessionWithRemoteService:moq() andDelegate:delegateMock];
-  var testEntity = [self givenTestEntity];
   [OJAssert assertFalse:[testEntity dirty]];
   [OJAssert assertFalse:[testSession dirty]];
   [OJAssert assertFalse:delegateWasCalled];
@@ -234,6 +229,7 @@ if (typeof (_) == 'undefined') {
 {
   var delegateWasCalled = NO;
   var delegateMock = moq();
+  var testEntity = [self givenTestEntity];
   [delegateMock selector:@selector(crysonSession:dirtyDidChangeForEntity:) callback:function(args /* crysonSession, dirtyObject */) {
       [OJAssert assert:testEntity equals:args[1]];
       [OJAssert assertTrue:[args[1] dirty]];
@@ -241,7 +237,6 @@ if (typeof (_) == 'undefined') {
     }];
 
   var testSession = [self givenCrysonSessionWithRemoteService:moq() andDelegate:delegateMock];
-  var testEntity = [self givenTestEntity];
   [testEntity setId:100];
   [testEntity virginize];
   [testSession attach:testEntity];
@@ -307,11 +302,7 @@ if (typeof (_) == 'undefined') {
 
 - (CPDictionary)givenDefinitionMock
 {
-  var definitionMock = moq();
-  [definitionMock selector:@selector(objectForKey:) returns:@"Long" arguments:[@"id"]];
-  [definitionMock selector:@selector(objectForKey:) returns:@"String"];
-  [definitionMock selector:@selector(allKeys) returns:[@"id", @"name"]];
-  return definitionMock;
+  return @{@"id":@"Long", @"name":@"String"};
 }
 
 @end

@@ -21,12 +21,7 @@ if (typeof (_) == 'undefined') {
   _ = exports._;
 }
 @import <OJMoq/OJMoq.j>
-
-@implementation TestEntity : CrysonEntity
-{
-}
-
-@end
+@import "TestEntity.j"
 
 @implementation CrysonEntityTest : OJTestCase
 {
@@ -134,7 +129,7 @@ if (typeof (_) == 'undefined') {
 					    "name":"outer",
 					    "something_cryson_id":2}];
 
-  [[entity session] selector:@selector(findSyncByClass:andId:fetch:) returns:innerEntity arguments:[TestEntity, 2, nil]];
+  [[entity session] stubFindSyncByClass:TestEntity andId:2 returning:innerEntity];
 
   [OJAssert assert:@"outer" equals:[entity name]];
   [OJAssert assert:@"inner" equals:[[entity something] name]];
@@ -147,10 +142,9 @@ if (typeof (_) == 'undefined') {
               "name":"outer",
               "something_cryson_id":2}];
 
-  [[entity session] selector:@selector(findSyncByClass:andId:fetch:)
-                     returns:[[CrysonUnauthorizedEntity alloc] initWithJSObject:{"id":2, "crysonUnauthorized":YES} session:[entity session]]
-                   arguments:[TestEntity, 2, nil]];
-
+  [[entity session] stubFindSyncByClass:TestEntity andId:2
+                              returning:[[CrysonUnauthorizedEntity alloc] initWithJSObject:{"id":2, "crysonUnauthorized":YES} session:[entity session]]];
+  
   [OJAssert assert:@"outer" equals:[entity name]];
   [OJAssert assertNull:[entity something]];
   [OJAssert assert:2 equals:[entity toJSObject].something_cryson_id];
@@ -168,7 +162,7 @@ if (typeof (_) == 'undefined') {
 					    "name":"outer",
 					    "something_cryson_ids":[2]}];
 
-  [[entity session] selector:@selector(findSyncByClass:andIds:fetch:) returns:[innerEntity] arguments:[TestEntity, [2], nil]];
+  [[entity session] stubFindSyncByClass:TestEntity andIds:[2] returning:[innerEntity]];
 
   [OJAssert assert:@"outer" equals:[entity name]];
   [OJAssert assert:@"inner" equals:[[[entity something] objectAtIndex:0] name]];
@@ -185,14 +179,13 @@ if (typeof (_) == 'undefined') {
              {"id":1,
               "name":"outer",
               "something_cryson_ids":[2, 3]}];
-
-  [[entity session] selector:@selector(findSyncByClass:andIds:fetch:)
-                     returns:[
-                       innerEntity,
-                       [[CrysonUnauthorizedEntity alloc] initWithJSObject:{"id":3, "crysonUnauthorized":YES} session:[entity session]]
-                     ]
-                   arguments:[TestEntity, [2, 3], nil]];
-
+  
+  [[entity session] stubFindSyncByClass:TestEntity andIds:[2,3]
+                              returning:[
+                                         innerEntity,
+                                          [[CrysonUnauthorizedEntity alloc] initWithJSObject:{"id":3, "crysonUnauthorized":YES} session:[entity session]]
+                                         ]];
+  
   [OJAssert assert:@"outer" equals:[entity name]];
   [OJAssert assert:@"inner" equals:[[[entity something] objectAtIndex:0] name]];
   [OJAssert assert:1 equals:[entity countOfSomething]];
@@ -268,6 +261,65 @@ if (typeof (_) == 'undefined') {
 
 @end
 
+@implementation SessionMock : CPObject
+{
+  JSObject findSyncByClassAndIdStubs;
+  JSObject findSyncByClassAndIdsStubs;
+  JSObject definitionStubs;
+}
+
+- (id)init
+{
+  self = [super init];
+  if (self) {
+    findSyncByClassAndIdStubs = {};
+    findSyncByClassAndIdsStubs = {};
+    definitionStubs = {};
+  }
+  return self;
+}
+
+- (void)stubDefinitionForClass:(CLASS)aClass returning:(id)aDefinition
+{
+  definitionStubs[aClass] = aDefinition;
+}
+
+- (id)findDefinitionForClass:(CLASS)aClass
+{
+  return definitionStubs[aClass];
+}
+
+- (void)stubFindSyncByClass:(CLASS)aClass andId:(CPNumber)aNumber returning:(id)aReturnValue
+{
+  findSyncByClassAndIdStubs[[aClass, aNumber]] = aReturnValue;
+}
+
+- (void)stubFindSyncByClass:(CLASS)aClass andIds:(CPArray)someNumbers returning:(id)aReturnValue
+{
+  findSyncByClassAndIdsStubs[[aClass, someNumbers]] = aReturnValue;
+}
+
+- (id)findSyncByClass:(CLASS)aClass andId:(CPNumber)anId fetch:(CPArray)fetch
+{
+  return findSyncByClassAndIdStubs[[aClass,anId]];
+}
+
+- (id)findSyncByClass:(CLASS)aClass andIds:(CPArray)someIds fetch:(CPArray)fetch
+{
+  return findSyncByClassAndIdsStubs[[aClass,someIds]];
+}
+
+- (id)findCachedByClass:(CLASS)aClass andId:(CPNumber)anId
+{
+  return nil;
+}
+
+- (void)attach:(id)ignored
+{
+}
+
+@end
+
 @implementation CrysonEntityTest (Helpers)
 
 - (TestEntity)givenTestEntityWithJSObject:(JSObject)jsObject
@@ -278,9 +330,8 @@ if (typeof (_) == 'undefined') {
 
 - (TestEntity)givenTestEntityWithJSObject:(JSObject)jsObject andDefinition:(CPDictionary)definition
 {
-  var sessionMock = moq();
-  [sessionMock selector:@selector(findDefinitionForClass:) returns:definition arguments:[TestEntity]];
-  [sessionMock selector:@selector(findCachedByClass:andId:) returns:nil];
+  var sessionMock = [[SessionMock alloc] init];
+  [sessionMock stubDefinitionForClass:TestEntity returning:definition];
 
   return [[TestEntity alloc] initWithJSObject:jsObject session:sessionMock];
 }
