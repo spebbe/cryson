@@ -393,7 +393,7 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
     }
   }
 
-  return [CPValidationResult validationResultWithValue:attributeValue valid:YES];
+  return YES;
 }
 
 - (BOOL)_attributeIsNullable:(CPString)anAttributeType
