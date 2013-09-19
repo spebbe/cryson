@@ -18,11 +18,12 @@
 
 package se.sperber.cryson.repository;
 
-import org.apache.log4j.Logger;
 import org.aspectj.lang.annotation.AfterThrowing;
 import org.aspectj.lang.annotation.Aspect;
 import org.hibernate.OptimisticLockException;
 import org.hibernate.StaleObjectStateException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.orm.hibernate3.HibernateOptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 import se.sperber.cryson.exception.CrysonEntityConflictException;
@@ -32,10 +33,11 @@ import se.sperber.cryson.exception.CrysonException;
 @Aspect
 public class CrysonRepositoryExceptionTranslator {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(CrysonRepositoryExceptionTranslator.class);
   @AfterThrowing(pointcut="execution(public * se.sperber.cryson.repository.CrysonRepository.*(..))",
                  throwing="t")
   public void translateHibernateExceptions(Throwable t) throws Throwable {
-    Logger.getLogger(CrysonRepositoryExceptionTranslator.class).error("Translating exception", t);
+    LOGGER.error("Translating exception", t);
     if (t instanceof CrysonException) {
       throw t;
     } else if (t instanceof OptimisticLockException || t instanceof HibernateOptimisticLockingFailureException || t instanceof StaleObjectStateException) {

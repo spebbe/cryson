@@ -20,9 +20,10 @@ package se.sperber.cryson.service;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import org.apache.log4j.Logger;
 import org.hibernate.OptimisticLockException;
 import org.hibernate.StaleObjectStateException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.orm.hibernate3.HibernateOptimisticLockingFailureException;
@@ -59,7 +60,7 @@ public class CrysonFrontendService {
 
   private Set<CrysonListener> crysonListeners;
 
-  private static final Logger logger = Logger.getLogger(CrysonFrontendService.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(CrysonFrontendService.class);
 
   @PostConstruct
   public void findListeners() {
@@ -203,7 +204,7 @@ public class CrysonFrontendService {
       try {
         crysonListener.commitCompleted(listenerNotificationBatch);
       } catch(Throwable t) {
-        logger.error("Cryson listener of class " + crysonListener.getClass().getSimpleName() + " threw after commit.", t);
+        LOGGER.error("Cryson listener of class " + crysonListener.getClass().getSimpleName() + " threw after commit.", t);
       }
     }
   }
@@ -214,7 +215,7 @@ public class CrysonFrontendService {
   }
   
   private Response translateThrowable(Throwable t) {
-    logger.error("Error", t);
+    LOGGER.error("Error", t);
     if (t instanceof CrysonException) {
       return translateCrysonException((CrysonException)t);
     } else if (t instanceof OptimisticLockException || t instanceof HibernateOptimisticLockingFailureException || t instanceof StaleObjectStateException) {
