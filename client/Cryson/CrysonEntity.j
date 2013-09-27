@@ -32,7 +32,7 @@ function compareNumbers(a,b){
 }
 
 var ArrayKVCOperationRegexp = /^(countOf(.+))|(objectIn(.+)AtIndex:)|(insertObject:in(.+)AtIndex:)|(removeObjectFrom(.+)AtIndex:)$/;
-var KVCValidationRegexp = /^(validate(.+):)$/;
+var KVCValidationRegexp = /^(validate(.+):error:)$/;
 var NumberTypes = [CrysonMutableEntitySet setWithArray:["Long", "long", "Integer", "int", "Float", "float", "Double", "double"]];
 var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Float", "Double", "Date", "String"]];
 
