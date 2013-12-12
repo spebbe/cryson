@@ -239,8 +239,10 @@
 
 - (CrysonEntity)materializeEntity:(JSObject)entityJSObject
 {
-  if (entityJSObject.crysonUnauthorized) {
+  if ('crysonUnauthorized' in entityJSObject) {
     return [[CrysonUnauthorizedEntity alloc] initWithJSObject:entityJSObject session:self];
+  } else if(!'crysonEntityClass' in entityJSObject) {
+    if(!!console) console.warn("missing crysonEntityClass in object for entity materialization:", entityJSObject);
   }
   var entityClass = CPClassFromString(entityJSObject.crysonEntityClass);
   var cachedEntity = [self findCachedByClass:entityClass andId:entityJSObject.id];
