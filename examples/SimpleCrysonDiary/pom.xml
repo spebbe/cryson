@@ -13,7 +13,7 @@
     <dependency>
       <groupId>se.sperber.cryson</groupId>
       <artifactId>cryson</artifactId>
-      <version>0.6.4</version>
+      <version>0.6.5</version>
       <scope>compile</scope>
       <type>jar</type>
     </dependency>
