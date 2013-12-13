@@ -239,11 +239,14 @@
 
 - (CrysonEntity)materializeEntity:(JSObject)entityJSObject
 {
-  if ('crysonUnauthorized' in entityJSObject) {
+  if (entityJSObject == nil) {
+    [CPException raise:CPInvalidArgumentException reason:@"Cannot materialize entity from nil"];
+  } else if ('crysonUnauthorized' in entityJSObject) {
     return [[CrysonUnauthorizedEntity alloc] initWithJSObject:entityJSObject session:self];
-  } else if(!'crysonEntityClass' in entityJSObject) {
-    if(!!console) console.warn("missing crysonEntityClass in object for entity materialization:", entityJSObject);
+  } else if (!'crysonEntityClass' in entityJSObject) {
+    [CPException raise:CPInvalidArgumentException reason:@"Given entityJSObject cannot materialize. "+entityJSObject];
   }
+
   var entityClass = CPClassFromString(entityJSObject.crysonEntityClass);
   var cachedEntity = [self findCachedByClass:entityClass andId:entityJSObject.id];
   if (cachedEntity) {
