@@ -623,7 +623,7 @@ If the commit failed, the following delegate method is instead called:
 
 - (void)fetchByClass:(Class)entityClass andIds:(CPArray)someIds fetch:(CPArray)associationsToFetch delegate:(id)aDelegate
 {
-  var url = baseUrl + "/" + [entityClass name];
+  var url = baseUrl + "/" + entityClass.name;
   var payload = {
     "raw_ids":[someIds componentsJoinedByString:","],
     "fetch":[self _associationNamesToFetchString:associationsToFetch]
@@ -998,7 +998,7 @@ If the commit failed, the following delegate method is instead called:
   if ([remainingEntityIds count] == 1) {
     foundEntities = [[self findSyncByClass:entityClass andId:[remainingEntityIds objectAtIndex:0] fetch:associationsToFetch]];
   } else if ([remainingEntityIds count] > 1) {
-    var url = baseUrl + "/" + [entityClass name];
+    var url = baseUrl + "/" + entityClass.name;
     var payload = {
       "raw_ids":[remainingEntityIds componentsJoinedByString:","],
       "fetch":[self _associationNamesToFetchString:associationsToFetch]
