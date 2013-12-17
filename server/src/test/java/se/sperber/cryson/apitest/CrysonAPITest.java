@@ -18,6 +18,7 @@
 
 package se.sperber.cryson.apitest;
 
+import com.google.common.base.Charsets;
 import com.google.gson.JsonElement;
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.HttpClient;
@@ -138,7 +139,22 @@ public class CrysonAPITest {
     CrysonTestEntity testEntity = crysonSerializer.deserialize(jsonElement.getAsJsonArray().get(0), CrysonTestEntity.class, null);
     assertEquals(foundEntity.getId(), testEntity.getId());
   }
-  
+
+  @Test
+  public void shouldFindEntitiesByIdsWithPost() throws Exception {
+    PostMethod postMethod = new PostMethod("http://localhost:8789/cryson/CrysonTestEntity");
+    String json = "{\"raw_ids\":\"1000,"+foundEntity.getId()+",2000,3000\", \"fetch\":\"\"}";
+    StringRequestEntity requestEntity = new StringRequestEntity(json, "application/json", Charsets.UTF_8.name());
+    postMethod.setRequestEntity(requestEntity);
+    int status = httpClient.executeMethod(postMethod);
+    assertEquals(HttpStatus.SC_OK, status);
+
+    JsonElement jsonElement = crysonSerializer.parse(postMethod.getResponseBodyAsString());
+    assertEquals(1, jsonElement.getAsJsonArray().size());
+    CrysonTestEntity testEntity = crysonSerializer.deserialize(jsonElement.getAsJsonArray().get(0), CrysonTestEntity.class, null);
+    assertEquals(foundEntity.getId(), testEntity.getId());
+  }
+
   @Test
   public void shouldFindEntitiesByExample() throws Exception {
     GetMethod getMethod = new GetMethod("http://localhost:8789/cryson/CrysonTestEntity/?example=" + URLEncoder.encode(crysonSerializer.serialize(foundEntity), "UTF-8"));

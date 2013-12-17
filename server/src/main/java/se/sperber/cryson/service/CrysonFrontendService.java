@@ -87,22 +87,29 @@ public class CrysonFrontendService {
     }
   }
 
+  /**
+   * @deprecated use getEntitiesById with POST to avoid too long get urls
+   */
   @GET
   @Path("{entity_name}/{rawIds: [0-9,]+}")
+  @Deprecated
   public Response getEntityById(@PathParam("entity_name") String entityName, @PathParam("rawIds") String rawIds, @QueryParam("fetch") String rawAssociationsToFetch) {
     try {
-      Set<String> associationsToFetch = splitAssociationsToFetch(rawAssociationsToFetch);
+      return getEntitiesById(entityName, rawIds, rawAssociationsToFetch);
+    } catch(Throwable t) {
+      return translateThrowable(t);
+    }
+  }
 
-      String[] stringIds = rawIds.split(",");
-      if (stringIds.length == 1) {
-        return crysonService.getEntityById(entityName, Long.parseLong(stringIds[0]), associationsToFetch);
-      } else {
-        List<Long> ids = new ArrayList<Long>(stringIds.length);
-        for(int ix = 0;ix < stringIds.length;ix++) {
-          ids.add(Long.parseLong(stringIds[ix]));
-        }
-        return crysonService.getEntitiesByIds(entityName, ids, associationsToFetch);
-      }
+
+  @POST
+  @Path("{entity_name}")
+  public Response getEntitiesById(@PathParam("entity_name") String entityName, String json) {
+    try {
+      JsonObject input = crysonSerializer.parse(json).getAsJsonObject();
+      String rawAssociationsToFetch = input.get("fetch").getAsString();
+      String rawIds = input.get("raw_ids").getAsString();
+      return getEntitiesById(entityName, rawIds, rawAssociationsToFetch);
     } catch(Throwable t) {
       return translateThrowable(t);
     }
@@ -245,6 +252,20 @@ public class CrysonFrontendService {
     }
 
     return new HashSet<String>(Arrays.asList(rawAssociationsToFetch.split(",")));
+  }
+
+  private Response getEntitiesById(String entityName, String rawStringIds, String rawAssociationsToFetch) {
+    Set<String> associationsToFetch = splitAssociationsToFetch(rawAssociationsToFetch);
+    String[] stringIds = rawStringIds.split(",");
+
+    if(stringIds.length <= 1) {
+      return crysonService.getEntityById(entityName, Long.parseLong(stringIds[0]), associationsToFetch);
+    }
+    List<Long> entityIds = new ArrayList<Long>();
+    for(String stringId : stringIds) {
+      entityIds.add(Long.parseLong(stringId));
+    }
+    return crysonService.getEntitiesByIds(entityName, entityIds, associationsToFetch);
   }
 
 }

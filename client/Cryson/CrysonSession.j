@@ -477,15 +477,20 @@ By passing an array of key paths (e.g ["children", "children.toys"]) as the 'ass
 */
 - (void)findOrRefreshByClass:(Class)entityClass andIds:(CPArray)someIds fetch:(CPArray)associationsToFetch delegate:(id)aDelegate
 {
-  var url = baseUrl + "/" + [entityClass className] + "/" + [someIds componentsJoinedByString:","] + "?fetch=" + [self _associationNamesToFetchString:associationsToFetch];
+  var url = baseUrl + "/" + [entityClass className];
+  var payload = {
+    "raw_ids":[someIds componentsJoinedByString:","],
+    "fetch":[self _associationNamesToFetchString:associationsToFetch]
+  };
   var context = [CrysonSessionContext contextWithDelegate:aDelegate andEntityClass:entityClass];
   [context setEntityIdsToFindOrRefresh:someIds];
   [self startLoadOperationForDelegate:aDelegate];
-  [remoteService get:url
-            delegate:self
-           onSuccess:@selector(findOrRefreshSucceeded:context:)
-             onError:@selector(findOrRefreshFailed:statusCode:context:)
-             context:context];
+  [remoteService post:payload
+                   to:url
+             delegate:self
+            onSuccess:@selector(findOrRefreshSucceeded:context:)
+              onError:@selector(findOrRefreshFailed:statusCode:context:)
+              context:context];
 }
 
 /*!
@@ -618,15 +623,20 @@ If the commit failed, the following delegate method is instead called:
 
 - (void)fetchByClass:(Class)entityClass andIds:(CPArray)someIds fetch:(CPArray)associationsToFetch delegate:(id)aDelegate
 {
-  var url = baseUrl + "/" + entityClass.name + "/" + [someIds componentsJoinedByString:","] + "?fetch=" + [self _associationNamesToFetchString:associationsToFetch];
+  var url = baseUrl + "/" + [entityClass name];
+  var payload = {
+    "raw_ids":[someIds componentsJoinedByString:","],
+    "fetch":[self _associationNamesToFetchString:associationsToFetch]
+  };
   var context = [CrysonSessionContext contextWithDelegate:aDelegate andEntityClass:entityClass];
   [context setEntityId:someIds];
   [self startLoadOperationForDelegate:aDelegate];
-  [remoteService get:url
-            delegate:self
-           onSuccess:@selector(findByClassAndIdsSucceeded:context:)
-             onError:@selector(findByClassAndIdsFailed:statusCode:context:)
-             context:context];
+  [remoteService post:payload
+                   to:url
+             delegate:self
+            onSuccess:@selector(findByClassAndIdsSucceeded:context:)
+              onError:@selector(findByClassAndIdsFailed:statusCode:context:)
+              context:context];
 }
 
 - (CPString)_associationNamesToFetchString:(CPString)associationsToFetch
@@ -988,9 +998,13 @@ If the commit failed, the following delegate method is instead called:
   if ([remainingEntityIds count] == 1) {
     foundEntities = [[self findSyncByClass:entityClass andId:[remainingEntityIds objectAtIndex:0] fetch:associationsToFetch]];
   } else if ([remainingEntityIds count] > 1) {
-    var url = baseUrl + "/" + entityClass.name + "/" + [remainingEntityIds componentsJoinedByString:","] + "?fetch=" + [self _associationNamesToFetchString:associationsToFetch];
+    var url = baseUrl + "/" + [entityClass name];
+    var payload = {
+      "raw_ids":[remainingEntityIds componentsJoinedByString:","],
+      "fetch":[self _associationNamesToFetchString:associationsToFetch]
+    };
     [self startLoadOperationForDelegate:delegate];
-    var entityJSObjects = [RequestHelper syncGet:url];
+    var entityJSObjects = [RequestHelper syncPost:url object:payload];
     [self finishLoadOperationForDelegate:delegate];
     for(var ix = 0;ix < [entityJSObjects count];ix++) {
       [foundEntities addObject:[self materializeEntity:[entityJSObjects objectAtIndex:ix]]];
