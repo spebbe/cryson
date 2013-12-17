@@ -8,7 +8,7 @@
 
   <groupId>se.sperber.cryson</groupId>
   <artifactId>cryson</artifactId>
-  <version>0.6.6</version>
+  <version>0.6.7</version>
 
   <licenses>
     <license>
@@ -39,6 +39,9 @@
     </contributor>
     <contributor>
       <name>Arsenij Vodjanov</name>
+    </contributor>
+    <contributor>
+      <name>Magnus Spångdal</name>
     </contributor>
   </contributors>
 
