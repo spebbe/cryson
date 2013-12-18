@@ -1005,8 +1005,11 @@ If the commit failed, the following delegate method is instead called:
     };
     [self startLoadOperationForDelegate:delegate];
     var entityJSObjects = [RequestHelper syncPost:url object:payload];
+    if (entityJSObjects == null) {
+      [CPException raise:CPInternalInconsistencyException reason:@"Failed to fetch " + entityClass + " entities"];
+    }
     [self finishLoadOperationForDelegate:delegate];
-    for(var ix = 0;ix < [entityJSObjects count];ix++) {
+    for(var ix = 0; ix < [entityJSObjects count]; ix++) {
       [foundEntities addObject:[self materializeEntity:[entityJSObjects objectAtIndex:ix]]];
     }
   }
