@@ -209,7 +209,8 @@ public class CrysonRepository {
 
   @PostAuthorize("hasPermission(#entity, 'write')")
   public void delete(Object entity) {
-    sessionFactory.getCurrentSession().delete(entity); // TODO: Authorization will be performed with placeholder associations...
+    Object persistentEntity = sessionFactory.getCurrentSession().get(entity.getClass(), reflectionHelper.getPrimaryKey(entity));
+    sessionFactory.getCurrentSession().delete(persistentEntity);
   }
 
   @PostAuthorize("hasPermission(returnObject, 'read') and hasPermission(returnObject, 'write')")

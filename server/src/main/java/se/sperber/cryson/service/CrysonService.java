@@ -216,19 +216,19 @@ public class CrysonService {
       replacedTemporaryIds.put(temporaryId, replacementId);
     }
 
-    JsonArray deletedEntities = committedEntities.getAsJsonObject().get("deletedEntities").getAsJsonArray();
-    for(JsonElement deletedEntityElement : deletedEntities) {
-      Object entity = crysonSerializer.deserialize(deletedEntityElement, entityClass(deletedEntityElement), replacedTemporaryIds);
-      crysonRepository.delete(entity);
-      listenerNotificationBatch.entityDeleted(entity);
-    }
-
     JsonArray updatedEntities = committedEntities.getAsJsonObject().get("updatedEntities").getAsJsonArray();
     for(JsonElement updatedEntityElement : updatedEntities) {
       Object entity = crysonSerializer.deserialize(updatedEntityElement, entityClass(updatedEntityElement), replacedTemporaryIds);
       patchOneToOnes(entity);
       Object updatedEntity = crysonRepository.update(entity);
       updatedPersistedEntities.add(updatedEntity);
+    }
+
+    JsonArray deletedEntities = committedEntities.getAsJsonObject().get("deletedEntities").getAsJsonArray();
+    for(JsonElement deletedEntityElement : deletedEntities) {
+      Object entity = crysonSerializer.deserialize(deletedEntityElement, entityClass(deletedEntityElement), replacedTemporaryIds);
+      crysonRepository.delete(entity);
+      listenerNotificationBatch.entityDeleted(entity);
     }
 
     JsonObject responseJsonObject = new JsonObject();
