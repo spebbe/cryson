@@ -33,9 +33,27 @@
   CPNumber retryCount @accessors;
 }
 
+- (JSFunction)retryBlock
+{
+  return function() {
+    if ([self verb] == @"GET") {
+      [self setRetryCount:[self retryCount] + 1];
+      [RequestHelper asyncGet:[self requestUrl]
+                      context:self
+                     delegate:self];
+    } else if ([self verb] == @"POST") {
+      [self setRetryCount:[self retryCount] + 1];
+      [RequestHelper asyncPost:[self requestUrl]
+                        object:[self requestObject]
+                       context:self
+                      delegate:self];
+    }
+  }
+}
+
 - (void)connection:(ContextualConnection)connection didFailWithError:(id)error
 {
-  if (retryHandler && ([retryHandler willRetryRemoteServiceContext:self data:error statusCode:statusCode])) {
+  if (retryHandler && ([retryHandler willRetryRemoteServiceContext:self data:error statusCode:statusCode retryBlock:[self retryBlock]])) {
     return;
   }
 
@@ -63,7 +81,7 @@
     }
   } else {
 
-    if (retryHandler && ([retryHandler willRetryRemoteServiceContext:self data:data statusCode:statusCode])) {
+    if (retryHandler && ([retryHandler willRetryRemoteServiceContext:self data:data statusCode:statusCode retryBlock:[self retryBlock]])) {
       return;
     }
 
