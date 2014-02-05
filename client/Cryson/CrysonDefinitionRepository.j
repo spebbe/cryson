@@ -91,7 +91,7 @@ var sharedInstance = nil,
 
 - (CPDictionary)_fetchDefinitionForClass:(CLASS)crysonEntityClass
 {
-  var rawDefinition = [RequestHelper syncGet:baseUrl + "/definition/" + crysonEntityClass.name];
+  var rawDefinition = [RemoteService syncGet:baseUrl + "/definition/" + crysonEntityClass.name];
   return [self _definitionFromRawDefinition:rawDefinition];
 }
 
