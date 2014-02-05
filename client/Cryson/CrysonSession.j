@@ -964,7 +964,7 @@ If the commit failed, the following delegate method is instead called:
   } else {
     var url = baseUrl + "/" + entityClass.name + "/" + id + "?fetch=" + [self _associationNamesToFetchString:associationsToFetch];
     [self startLoadOperationForDelegate:delegate];
-    var entityJSObject = [RequestHelper syncGet:url];
+    var entityJSObject = [RemoteService syncGet:url];
     [self finishLoadOperationForDelegate:delegate];
     return [self materializeEntity:entityJSObject];
   }
@@ -983,7 +983,7 @@ If the commit failed, the following delegate method is instead called:
   var cachedEntities = [];
   var remainingEntityIds = [];
 
-  for(var ix = 0;ix < [ids count];ix++) {
+  for(var ix = 0; ix < [ids count]; ix++) {
     var currentId = [ids objectAtIndex:ix];
     var cachedEntity = [self findCachedByClass:entityClass andId:currentId];
     if (cachedEntity) {
@@ -1004,7 +1004,7 @@ If the commit failed, the following delegate method is instead called:
       "fetch":[self _associationNamesToFetchString:associationsToFetch]
     };
     [self startLoadOperationForDelegate:delegate];
-    var entityJSObjects = [RequestHelper syncPost:url object:payload];
+    var entityJSObjects = [RemoteService syncPost:url object:payload];
     if (entityJSObjects == null) {
       [CPException raise:CPInternalInconsistencyException reason:@"Failed to fetch " + entityClass + " entities"];
     }

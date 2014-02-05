@@ -18,6 +18,17 @@
 
 @import "RequestHelper.j"
 
+@implementation SyncRemoteServiceContext : CPObject
+{
+  CPNumber statusCode @accessors;
+  CPString verb @accessors;
+  CPString requestUrl @accessors;
+  id requestObject @accessors;
+  CPNumber retryCount @accessors;
+}
+
+@end
+
 @implementation RemoteServiceContext : CPObject
 {
   CPNumber statusCode @accessors;
@@ -105,9 +116,25 @@
 
 @end
 
-var sharedInstance = nil;
+@implementation NullRetryHandler : CPObject {}
 
-var retryHandler = nil;
+- (BOOL)willRetryRemoteServiceContext:(RemoteServiceContext)aRemoteServiceContext
+                                 data:(CPString)data
+                           statusCode:(CPNumber)statusCode
+                           retryBlock:(JSFunction)retry
+{
+  return NO;
+}
+
+- (BOOL)remoteService:(RemoteService)remoteService shouldRetrySyncRequestContext:(SyncRemoteServiceContext)context
+{
+  return NO;
+}
+
+@end
+
+var sharedInstance = nil,
+    retryHandler = [NullRetryHandler new];
 
 @implementation RemoteService : CPObject
 {
@@ -157,7 +184,6 @@ var retryHandler = nil;
   [RemoteService get:requestUrl delegate:delegate onSuccess:action onError:errorAction context:callerContext];
 }
 
-
 + (void)get:(CPString)requestUrl delegate:(id)delegate onSuccess:(SEL)action onError:(SEL)errorAction
 {
   [RemoteService get:requestUrl delegate:delegate onSuccess:action onError:errorAction context:nil];
@@ -200,6 +226,45 @@ var retryHandler = nil;
 - (void)post:(JSObject)object to:(CPString)requestUrl delegate:(id)delegate onSuccess:(SEL)action onError:(SEL)errorAction context:(id)callerContext
 {
   [RemoteService post:object to:requestUrl delegate:delegate onSuccess:action onError:errorAction context:callerContext customHeaders:customHeaders];
+}
+
+@end
+
+@implementation RemoteService (Sync)
+
++ (JSObject)syncGet:(CPString)url
+{
+  return [self syncFetch:url verb:@"GET" object:nil];
+}
+
++ (JSObject)syncPost:(CPString)url object:(JSObject)requestObject
+{
+  return [self syncFetch:url verb:@"POST" object:requestObject];
+}
+
++ (JSObject)syncFetch:(CPString)url verb:(CPString)verb object:(JSObject)requestObject
+{
+  var context = [SyncRemoteServiceContext new];
+  context.verb = verb;
+  context.requestObject = requestObject;
+  context.requestUrl = url;
+  context.retryCount = 0;
+
+  while (true) {
+    var response = [RequestHelper syncRequestWithVerb:verb url:url object:requestObject],
+        responseObject = response && response.status() == 200 && [response.responseText() objectFromJSON];
+
+    if (responseObject) {
+      return responseObject;
+    }
+
+    context.statusCode = response.status();
+    if (!responseObject && ![retryHandler remoteService:self shouldRetrySyncRequestContext:context]) {
+      return nil;
+    }
+
+    context.retryCount++;
+  }
 }
 
 @end

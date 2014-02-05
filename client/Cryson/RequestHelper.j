@@ -73,24 +73,7 @@
 
 @end
 
-@implementation RequestHelper (Private)
-
-+ (JSObject)syncRequestWithVerb:(CPString)verb url:(CPString)url object:(JSObject)object
-{
-  var request = [CPURLRequest requestWithURL:url];
-  [request setHTTPMethod:verb];
-  [request setValue:"application/json" forHTTPHeaderField:"Accept"];
-  [request setValue:"application/json" forHTTPHeaderField:"Content-Type"];
-  if (object) {
-    [request setHTTPBody:JSON.stringify(object)];
-  }
-
-  var response = [CPURLConnection sendSynchronousRequest:request returningResponse:nil];
-  if (response && [response rawString]) {
-    return [[response rawString] objectFromJSON];
-  }
-  return nil;
-}
+@implementation RequestHelper (Async)
 
 + (void)asyncRequestWithVerb:(CPString)verb url:(CPString)url object:(JSObject)object context:(id)context delegate:(id)delegate
 {
@@ -117,9 +100,49 @@
   }
 
   var connection = [[ContextualConnection alloc] initWithRequest:request
-                                                 delegate:delegate
-                                                 startImmediately:YES
-                                                 context:context];
+                                                        delegate:delegate
+                                                startImmediately:YES
+                                                         context:context];
+}
+
+@end
+
+@implementation RequestHelper (Sync)
+
++ (Response)sendSynchronousRequest:(CPURLRequest)aRequest
+{
+  try {
+    var request = new CFHTTPRequest();
+
+    request.open([aRequest HTTPMethod], [[aRequest URL] absoluteString], NO);
+
+    var fields = [aRequest allHTTPHeaderFields],
+        key = nil,
+        keys = [fields keyEnumerator];
+
+    while ((key = [keys nextObject]) !== nil)
+      request.setRequestHeader(key, [fields objectForKey:key]);
+
+    request.send([aRequest HTTPBody]);
+
+    return request;
+  }
+  catch (anException) {}
+
+  return nil;
+}
+
++ (Response)syncRequestWithVerb:(CPString)verb url:(CPString)url object:(JSObject)object
+{
+  var request = [CPURLRequest requestWithURL:url];
+  [request setHTTPMethod:verb];
+  [request setValue:"application/json" forHTTPHeaderField:"Accept"];
+  [request setValue:"application/json" forHTTPHeaderField:"Content-Type"];
+  if (object) {
+    [request setHTTPBody:JSON.stringify(object)];
+  }
+
+  return [self sendSynchronousRequest:request];
 }
 
 @end
