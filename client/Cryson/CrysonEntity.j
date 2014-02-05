@@ -333,14 +333,20 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
 {
   var selectorString = CPStringFromSelector([anInvocation selector]);
   var firstChar = selectorString.charAt(0);
+
+  if (firstChar == 'c') {
+    var ids = (crysonAssociations[anAttribute] === undefined ? crysonObject[anAttribute + "_cryson_ids"] : [self valueForKey:anAttribute]) || [];
+    [anInvocation setReturnValue:ids.length];
+    return;
+  }
+
   var attributeArray = [self valueForKey:anAttribute];
   if (attributeArray == nil) {
     attributeArray = [];
     [self setValue:attributeArray forKey:anAttribute];
   }
-  if (firstChar == 'c') {
-    [anInvocation setReturnValue:[attributeArray count]];
-  } else if (firstChar == 'o') {
+
+  if (firstChar == 'o') {
     [anInvocation setReturnValue:[attributeArray objectAtIndex:[anInvocation argumentAtIndex:2]]];
   } else if (firstChar == 'i') {
     [self willChangeValueForKey:"dirty"];
