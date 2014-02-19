@@ -696,6 +696,25 @@ If the commit failed, the following delegate method is instead called:
   while((snapshot = [snapshotEnumerator nextObject]) != nil) {
     snapshot.id = replacedTemporaryIds[snapshot.id];
     [result setObject:snapshot forKey:snapshot.crysonEntityClass + "_" + snapshot.id];
+    var attributeNames = _.keys(snapshot);
+    for(var ix = 0;ix < [attributeNames count];ix++) {
+      var attributeName = [attributeNames objectAtIndex:ix];
+      if ([attributeName hasSuffix:"_cryson_id"]) {
+        var replacementId = replacedTemporaryIds[snapshot[attributeName]];
+        if (replacementId) {
+          snapshot[attributeName] = replacementId;
+        }
+      } else if ([attributeName hasSuffix:"_cryson_ids"]) {
+        var idArray = snapshot[attributeName];
+        for(var iy = 0;iy < [idArray count];iy++) {
+          var replacementId = replacedTemporaryIds[idArray[iy]];
+          if (replacementId) {
+            idArray[iy] = replacementId;
+          }
+        }
+        snapshot[attributeName] = idArray.sort(compareNumbers);
+      }
+    }
   }
   return result;
 }
