@@ -283,7 +283,7 @@
                                       target:self
                                     argument:function() { [aDelegate crysonSession:self found:cachedEntity byClass:entityClass]; }
                                        order:1
-                                       modes:nil];
+                                       modes:[CPDefaultRunLoopMode]];
   } else {
     [self fetchByClass:entityClass andId:id fetch:associationsToFetch delegate:aDelegate];
   }
