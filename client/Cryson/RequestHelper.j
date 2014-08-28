@@ -85,7 +85,9 @@
   var request = [CPURLRequest requestWithURL:url];
   [request setHTTPMethod:verb];
   [request setValue:"application/json" forHTTPHeaderField:"Accept"];
-  [request setValue:"application/json" forHTTPHeaderField:"Content-Type"];
+    if (verb == @"POST") {
+    [request setValue:"application/json" forHTTPHeaderField:"Content-Type"];
+  }
   if(customHeaders) {
     var keys = [customHeaders allKeys];
     for(var i = 0; i < [keys count]; i++) {
@@ -137,7 +139,9 @@
   var request = [CPURLRequest requestWithURL:url];
   [request setHTTPMethod:verb];
   [request setValue:"application/json" forHTTPHeaderField:"Accept"];
-  [request setValue:"application/json" forHTTPHeaderField:"Content-Type"];
+  if (verb == @"POST") {
+    [request setValue:"application/json" forHTTPHeaderField:"Content-Type"];
+  }
   if (object) {
     [request setHTTPBody:JSON.stringify(object)];
   }
