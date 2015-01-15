@@ -27,34 +27,39 @@ import com.sun.jersey.core.spi.component.ioc.IoCComponentProvider;
 import com.sun.jersey.server.spi.component.ResourceComponentProvider;
 import com.sun.jersey.server.spi.component.ResourceComponentProviderFactory;
 import com.sun.jersey.spi.container.servlet.ServletContainer;
-import org.mortbay.jetty.Handler;
-import org.mortbay.jetty.servlet.Context;
-import org.mortbay.jetty.servlet.DefaultServlet;
-import org.mortbay.jetty.servlet.FilterHolder;
-import org.mortbay.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.server.Handler;
+import org.eclipse.jetty.server.handler.AllowSymLinkAliasChecker;
+import org.eclipse.jetty.servlet.DefaultServlet;
+import org.eclipse.jetty.servlet.FilterHolder;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import javax.servlet.DispatcherType;
+import java.util.EnumSet;
 
 @Component
 public class JettySpringHelper {
 
   @Autowired
-  private DefaultListableBeanFactory defaultListableBeanFactory;
+  private AnnotationConfigApplicationContext applicationContext;
 
   @PostConstruct
   public void initialize() {
-    SpringComponentProviderFactory.defaultListableBeanFactory = defaultListableBeanFactory;
+    SpringComponentProviderFactory.defaultListableBeanFactory = applicationContext.getDefaultListableBeanFactory();
   }
 
-  public void addSecurityFilter(Context context, String pathSpec) {
-    FilterHolder securityFilterHolder = new FilterHolder(new CrysonDelegatingFilterProxy(defaultListableBeanFactory));
-    context.addFilter(securityFilterHolder, pathSpec, Handler.REQUEST | Handler.FORWARD | Handler.INCLUDE);
+  public void addSecurityFilter(ServletContextHandler context, String pathSpec) {
+    FilterHolder securityFilterHolder = new FilterHolder(new CrysonDelegatingFilterProxy(applicationContext));
+    context.addFilter(securityFilterHolder, pathSpec, EnumSet.of(DispatcherType.FORWARD, DispatcherType.INCLUDE, DispatcherType.REQUEST));
   }
 
-  public void addJerseyServlet(Context context, String pathSpec, String packageName) {
+  public void addJerseyServlet(ServletContextHandler context, String pathSpec, String packageName) {
     ServletHolder servletHolder = new ServletHolder(ServletContainer.class);
     servletHolder.setInitParameter(ServletContainer.RESOURCE_CONFIG_CLASS, PackagesResourceConfig.class.getName());
     servletHolder.setInitParameter(PackagesResourceConfig.PROPERTY_PACKAGES, packageName);
@@ -63,10 +68,11 @@ public class JettySpringHelper {
     context.addServlet(servletHolder, pathSpec);
   }
 
-  public void addFileServlet(Context context, String pathSpec, String fileRootPath) {
+  public void addFileServlet(ServletContextHandler context, String pathSpec, String fileRootPath) {
     ServletHolder servletHolder = new ServletHolder(DefaultServlet.class);
     servletHolder.setInitParameter("resourceBase", fileRootPath);
     servletHolder.setInitParameter("aliases", "true");
+    context.addAliasCheck(new AllowSymLinkAliasChecker());
     context.addServlet(servletHolder, pathSpec);
   }
 

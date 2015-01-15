@@ -1,4 +1,4 @@
-@import <Foundation/CPObject.j>
+@import <AppKit/AppKit.j>
 @import <Cryson/Cryson.j>
 @import "Models/Entry.j"
 @import "Models/EntryContent.j"

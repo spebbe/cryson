@@ -1,7 +1,8 @@
 package se.sperber.cryson.examples.advancedcrysondiary.initialization;
 
-import org.mortbay.jetty.Server;
-import org.mortbay.jetty.servlet.Context;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.handler.AllowSymLinkAliasChecker;
+import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -23,11 +24,12 @@ public class HttpServer {
   @PostConstruct
   public void startServer() throws Exception {
     Server server = new Server(port);
-    Context context = new Context(server, "/", Context.SESSIONS);
+    ServletContextHandler context = new ServletContextHandler(server, "/", ServletContextHandler.SESSIONS);
     jettySpringHelper.addFileServlet(context, "/*", fileRootPath);
     jettySpringHelper.addJerseyServlet(context, "/cryson/*", CrysonFrontendService.class.getPackage().getName());
     jettySpringHelper.addJerseyServlet(context, "/services/*", DiaryService.class.getPackage().getName());
     jettySpringHelper.addSecurityFilter(context, "/*");
+    context.addAliasCheck(new AllowSymLinkAliasChecker());
 
     server.start();
   }

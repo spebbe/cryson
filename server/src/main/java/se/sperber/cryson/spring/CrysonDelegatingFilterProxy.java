@@ -19,28 +19,31 @@
 package se.sperber.cryson.spring;
 
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.GenericWebApplicationContext;
 import org.springframework.web.filter.DelegatingFilterProxy;
 import se.sperber.cryson.initialization.Application;
 
+import javax.servlet.ServletContext;
+
 public class CrysonDelegatingFilterProxy extends DelegatingFilterProxy {
 
-  private DefaultListableBeanFactory defaultListableBeanFactory;
+  private ApplicationContext applicationContext;
 
   public CrysonDelegatingFilterProxy() {
     super();
-    defaultListableBeanFactory = Application.getContext().getDefaultListableBeanFactory();
+    applicationContext = Application.getContext();
   }
 
-  public CrysonDelegatingFilterProxy(DefaultListableBeanFactory defaultListableBeanFactory) {
+  public CrysonDelegatingFilterProxy(ApplicationContext applicationContext) {
     super();
-    this.defaultListableBeanFactory = defaultListableBeanFactory;
+    this.applicationContext = applicationContext;
   }
 
   @Override
   protected WebApplicationContext findWebApplicationContext() {
-    return new GenericWebApplicationContext(defaultListableBeanFactory);
+    return new WrappingWebApplicationContext(getServletContext(), applicationContext);
   }
 
   @Override

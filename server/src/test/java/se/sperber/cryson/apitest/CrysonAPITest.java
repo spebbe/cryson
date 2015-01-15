@@ -87,7 +87,7 @@ public class CrysonAPITest {
   public void shouldGetEntityDefinitions() throws Exception {
     GetMethod getMethod = new GetMethod("http://localhost:8789/cryson/definition/CrysonTestEntity");
     httpClient.executeMethod(getMethod);
-    assertEquals("{\"id\":\"Long\",\"name\":\"String\",\"doubleId\":\"Long\",\"shouldBeReadable\":\"boolean\",\"childEntities\":\"CrysonTestChildEntity\",\"crysonEntityClass\":\"String\",\"version\":\"long\"}", getMethod.getResponseBodyAsString());
+    assertEquals("{\"shouldBeReadable\":\"boolean\",\"childEntities\":\"CrysonTestChildEntity\",\"name\":\"String\",\"id\":\"Long\",\"doubleId\":\"Long\",\"crysonEntityClass\":\"String\",\"version\":\"long\"}", getMethod.getResponseBodyAsString());
   }
 
   @Test

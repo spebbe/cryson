@@ -18,13 +18,9 @@
 
 package se.sperber.cryson.initialization;
 
-import org.mortbay.jetty.Connector;
-import org.mortbay.jetty.Handler;
-import org.mortbay.jetty.Server;
-import org.mortbay.jetty.bio.SocketConnector;
-import org.mortbay.jetty.servlet.Context;
-import org.mortbay.log.Log;
-import org.mortbay.management.MBeanContainer;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +38,6 @@ public class HttpServer {
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpServer.class);
   private static final String SERVICE_PACKAGE = "se.sperber.cryson.service";
 
-  private static final int DEFAULT_HEADER_BUFFER_SIZE = 16384;
 
   @Autowired
   private JettySpringHelper jettySpringHelper;
@@ -56,57 +51,22 @@ public class HttpServer {
   @Value("${cryson.security.enabled}") private Boolean securityEnabled;
   
   private Server server;
-  private Connector connector;
-  private Context crysonContext;
-  private MBeanContainer mbeanContainer;
+  private ServerConnector connector;
+  private ServletContextHandler crysonContext;
 
 
   public void setupJetty() {
     server = new Server();
-    connector = new SocketConnector();
-    connector.setHeaderBufferSize(DEFAULT_HEADER_BUFFER_SIZE);
+    connector = new ServerConnector(server);
     connector.setPort(port);
     server.addConnector(connector);
-    server.setSendServerVersion(false);
-    crysonContext = new Context(server, "/", Context.SESSIONS);
+    crysonContext = new ServletContextHandler(server, "/", ServletContextHandler.SESSIONS);
     jettySpringHelper.addFileServlet(crysonContext, fileContextPath, fileRootPath);
     jettySpringHelper.addJerseyServlet(crysonContext, crysonContextPath, SERVICE_PACKAGE);
     jettySpringHelper.addJerseyServlet(crysonContext, userServiceContextPath, userServicePackage);
     if (securityEnabled) {
       jettySpringHelper.addSecurityFilter(crysonContext, "/*");
     }
-    setupJettyJMX();
-  }
-
-  private void setupJettyJMX() {
-    mbeanContainer=new MBeanContainer(ManagementFactory.getPlatformMBeanServer());
-    server.getContainer().addEventListener(mbeanContainer);
-    mbeanContainer.addBean(server);
-    mbeanContainer.addBean(connector);
-    mbeanContainer.addBean(Log.getLog());
-  }
-
-  public void teardownJetty() {
-    try {
-      teardownJettyJmx();
-    } catch(Exception e) {
-      LOGGER.error("Unexpected error while stopping jetty", e);
-    }
-  }
-
-  private void teardownJettyJmx() {
-    mbeanContainer.removeBean(server);
-    mbeanContainer.removeBean(connector);
-    mbeanContainer.removeBean(Log.getLog());
-
-    // mbeans for handlers and context are implicitly added, but need to be explicitly removed...
-    Handler[] handlers = server.getHandlers();
-    if (handlers != null) {
-      for (Handler handler : handlers) {
-        mbeanContainer.removeBean(handler);
-      }
-    }
-    mbeanContainer.removeBean(crysonContext);
   }
 
   public void startServer() throws Exception {
@@ -119,7 +79,6 @@ public class HttpServer {
   }
 
   public void stopServer() throws Exception {
-    teardownJetty();
     server.stop();
   }
 

@@ -1,4 +1,4 @@
-@import <AppKit/CPArrayController.j>
+@import <AppKit/AppKit.j>
 
 @implementation CPArrayController (SingleSelectionBinding)
 
