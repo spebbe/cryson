@@ -18,7 +18,6 @@
 
 package se.sperber.cryson.testutil;
 
-import org.hibernate.envers.Audited;
 import org.springframework.security.core.Authentication;
 import se.sperber.cryson.security.Restrictable;
 
@@ -26,7 +25,6 @@ import javax.persistence.*;
 import java.io.Serializable;
 
 @Entity
-@Audited
 public class CrysonTestChildEntity implements Serializable, Restrictable {
 
   @Id @GeneratedValue

@@ -14,7 +14,7 @@
         p:url="${cryson.database.url}" p:username="${cryson.database.user}" p:password='${cryson.database.password}' />
 
   <bean id="sessionFactory"
-        class="org.springframework.orm.hibernate3.annotation.AnnotationSessionFactoryBean">
+        class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
     <property name="dataSource" ref="dataSource" />
     <property name="packagesToScan">
       <list>
@@ -27,29 +27,17 @@
         hibernate.show_sql=false
         hibernate.hbm2ddl.auto=update
         hibernate.dialect=${cryson.database.dialect}
-        hibernate.cache.region.factory_class=net.sf.ehcache.hibernate.SingletonEhCacheRegionFactory
+        hibernate.cache.region.factory_class=org.hibernate.cache.ehcache.EhCacheRegionFactory
         hibernate.cache.use_second_level_cache=${cryson.database.use_cache}
         hibernate.cache.use_query_cache=${cryson.database.use_cache}
         hibernate.cache.use_minimal_puts=${cryson.database.use_cache}
         net.sf.ehcache.configurationResourceName=/cryson_ehcache.xml
       </value>
     </property>
-    <property name="eventListeners">
-      <map>
-        <entry key="post-insert"><ref local="enversListener"/></entry>
-        <entry key="post-update"><ref local="enversListener"/></entry>
-        <entry key="post-delete"><ref local="enversListener"/></entry>
-        <entry key="pre-collection-update"><ref local="enversListener"/></entry>
-        <entry key="pre-collection-remove"><ref local="enversListener"/></entry>
-        <entry key="post-collection-recreate"><ref local="enversListener"/></entry>
-      </map>
-    </property>
   </bean>
 
-  <bean id="enversListener" class="org.hibernate.envers.event.AuditEventListener" />
-
   <bean id="transactionManager"
-        class="org.springframework.orm.hibernate3.HibernateTransactionManager"
+        class="org.springframework.orm.hibernate4.HibernateTransactionManager"
         p:sessionFactory-ref="sessionFactory" />
 
   <tx:annotation-driven />

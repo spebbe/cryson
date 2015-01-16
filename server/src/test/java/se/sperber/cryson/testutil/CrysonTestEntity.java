@@ -20,7 +20,6 @@ package se.sperber.cryson.testutil;
 
 import se.sperber.cryson.annotation.VirtualAttribute;
 import se.sperber.cryson.security.Restrictable;
-import org.hibernate.envers.Audited;
 import org.springframework.security.core.Authentication;
 
 import javax.persistence.*;
@@ -30,7 +29,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Audited
 @NamedQueries({
         @NamedQuery(name = "CrysonTestEntity.findByName",
                 query = "SELECT e FROM CrysonTestEntity e WHERE e.name = :name"),

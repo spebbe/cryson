@@ -2,8 +2,8 @@ package se.sperber.cryson.repository;
 
 import org.hamcrest.Matcher;
 import org.hibernate.Criteria;
+import org.hibernate.Session;
 import org.hibernate.SessionFactory;
-import org.hibernate.classic.Session;
 import org.hibernate.criterion.Criterion;
 import org.hibernate.transform.ResultTransformer;
 import org.junit.Test;
