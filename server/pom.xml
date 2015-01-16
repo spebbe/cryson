@@ -8,7 +8,7 @@
 
   <groupId>se.sperber.cryson</groupId>
   <artifactId>cryson</artifactId>
-  <version>0.8.0</version>
+  <version>0.8.1</version>
 
   <licenses>
     <license>
@@ -222,14 +222,14 @@
     <dependency>
       <groupId>org.aspectj</groupId>
       <artifactId>aspectjrt</artifactId>
-      <version>1.6.8</version>
+      <version>1.8.4</version>
       <type>jar</type>
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>org.aspectj</groupId>
       <artifactId>aspectjtools</artifactId>
-      <version>1.6.8</version>
+      <version>1.8.4</version>
       <type>jar</type>
       <scope>compile</scope>
     </dependency>
