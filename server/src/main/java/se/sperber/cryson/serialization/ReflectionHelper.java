@@ -18,8 +18,8 @@
 
 package se.sperber.cryson.serialization;
 
+import com.google.common.base.Strings;
 import com.google.gson.FieldAttributes;
-import com.mysql.jdbc.StringUtils;
 import org.hibernate.proxy.HibernateProxy;
 import org.springframework.stereotype.Component;
 import se.sperber.cryson.annotation.VirtualAttribute;
@@ -74,7 +74,7 @@ public class ReflectionHelper {
         if (field.isAnnotationPresent(ElementCollection.class)) {
           result.put(field, targetClass);
         } else if (field.isAnnotationPresent(ManyToMany.class)) {
-          if (StringUtils.isNullOrEmpty(field.getAnnotation(ManyToMany.class).mappedBy())) {
+          if (Strings.isNullOrEmpty(field.getAnnotation(ManyToMany.class).mappedBy())) {
             result.put(field, targetClass);
           }
         } else if (field.isAnnotationPresent(ManyToOne.class)) {
@@ -82,11 +82,11 @@ public class ReflectionHelper {
             result.put(field, targetClass);
           }
         } else if (field.isAnnotationPresent(OneToMany.class)) {
-          if (StringUtils.isNullOrEmpty(field.getAnnotation(OneToMany.class).mappedBy())) {
+          if (Strings.isNullOrEmpty(field.getAnnotation(OneToMany.class).mappedBy())) {
             result.put(field, targetClass);
           }
         } else if (field.isAnnotationPresent(OneToOne.class)) {
-          if (StringUtils.isNullOrEmpty(field.getAnnotation(OneToOne.class).mappedBy())) {
+          if (Strings.isNullOrEmpty(field.getAnnotation(OneToOne.class).mappedBy())) {
             result.put(field, targetClass);
           }
         }
