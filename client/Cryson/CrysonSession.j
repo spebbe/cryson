@@ -317,16 +317,25 @@
 */
 - (void)findByClass:(Class)entityClass andIds:(CPArray)ids fetch:(CPArray)associationsToFetch delegate:(id)aDelegate
 {
-  /* TODO: Check cache, like in the sync version
-  var cachedEntity = [self findCachedByClass:entityClass andId:id];
-  if (cachedEntity) {
-    [aDelegate crysonSession:self found:cachedEntity byClass:entityClass];
-  } else {
-  */
-    [self fetchByClass:entityClass andIds:ids fetch:associationsToFetch delegate:aDelegate];
-    /*
+  var cachedEntities = [];
+  var remainingEntityIds = [];
+
+  for(var ix = 0; ix < [ids count]; ix++) {
+    var currentId = [ids objectAtIndex:ix];
+    var cachedEntity = [self findCachedByClass:entityClass andId:currentId];
+    if (cachedEntity) {
+      [cachedEntities addObject:cachedEntity];
+    } else {
+      [remainingEntityIds addObject:currentId];
+    }
   }
-    */
+
+  if ([remainingEntityIds count] > 0) {
+    // TODO: should merge cached and fetched instead?
+    [self fetchByClass:entityClass andIds:ids fetch:associationsToFetch delegate:aDelegate];
+  } else {
+    [aDelegate crysonSession:self found:cachedEntities byClass:entityClass andIds:ids];
+  }
 }
 
 /*!
