@@ -660,13 +660,13 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
   }
   var currentJSObject = [self toJSObject];
   for(var attributeName in newObject) {
-    if (!equalAttributes(currentJSObject[attributeName], newObject[attributeName])) {
+    if (![self isEmbeddedAttribute:attributeName jsonObject:newObject] && !equalAttributes(currentJSObject[attributeName], newObject[attributeName])) {
       [self willChangeValueForKey:[self attributeName:attributeName]];
     }
   }
   [self setAttributesFromJSObject:newObject];
   for(var attributeName in newObject) {
-    if (!equalAttributes(currentJSObject[attributeName], newObject[attributeName])) {
+    if (![self isEmbeddedAttribute:attributeName jsonObject:newObject] && !equalAttributes(currentJSObject[attributeName], newObject[attributeName])) {
       [self didChangeValueForKey:[self attributeName:attributeName]];
     }
   }
