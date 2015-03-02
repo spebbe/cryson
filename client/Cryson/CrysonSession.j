@@ -1036,6 +1036,29 @@ If the commit failed, the following delegate method is instead called:
   return [cachedEntities arrayByAddingObjectsFromArray:foundEntities];
 }
 
+- (CPArray)findSyncByNamedQuery:(CPString)queryName withParameters:(CPDictionary)parameters fetch:(CPArray)associationsToFetch
+{
+  var url = baseUrl + "/namedQuery/" + queryName + "/";
+  var firstParameter = YES;
+  var parameterNames = [parameters allKeys];
+  for (var ix = 0;ix < [parameterNames count];ix++) {
+    url += (firstParameter ? "?" : "&");
+    firstParameter = NO;
+    var parameterName = [parameterNames objectAtIndex:ix];
+    url += parameterName + "=" + encodeURIComponent([parameters objectForKey:parameterName]);
+  }
+  url += (firstParameter ? "?" : "&") + "fetch=" + [self _associationNamesToFetchString:associationsToFetch];
+
+  var foundEntities = [];
+  [self startLoadOperationForDelegate:delegate];
+  var entityJSObjects = [RemoteService syncGet:url];
+  [self finishLoadOperationForDelegate:delegate];
+  for(var ix = 0;ix < [entityJSObjects count];ix++) {
+    [foundEntities addObject:[self materializeEntity:[entityJSObjects objectAtIndex:ix]]];
+  }
+  return foundEntities;
+}
+
 @end
 
 @implementation CrysonSession (Authorization)
