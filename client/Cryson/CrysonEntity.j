@@ -659,15 +659,40 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
     return _.isEqual(sorted, unsorted);
   }
   var currentJSObject = [self toJSObject];
+
+  var changedEmbeddedAttributes = [];
   for(var attributeName in newObject) {
-    if (![self isEmbeddedAttribute:attributeName jsonObject:newObject] && !equalAttributes(currentJSObject[attributeName], newObject[attributeName])) {
-      [self willChangeValueForKey:[self attributeName:attributeName]];
+    if ([self isEmbeddedAttribute:attributeName jsonObject:newObject]) {
+      var embeddedAttribute = newObject[attributeName];
+      if (embeddedAttribute instanceof Array) {
+        var embeddedIds = [];
+        for(var ix = 0;ix < embeddedAttribute.length;ix++) {
+          embeddedIds[ix] = embeddedAttribute[ix].id;
+        }
+        if(!_.isEqual(crysonObject[[self idsAttributeNameFromAttributeName:attributeName]].sort(compareNumbers), embeddedIds.sort(compareNumbers))) {
+          [changedEmbeddedAttributes addObject:attributeName];
+        }
+      } else {
+        if (crysonObject[[self idAttributeNameFromAttributeName:attributeName]] != embeddedAttribute.id) {
+          [changedEmbeddedAttributes addObject:attributeName];
+        }
+      }
+    }
+  }
+
+  for(var attributeName in newObject) {
+    if (!equalAttributes(currentJSObject[attributeName], newObject[attributeName])) {
+      if (![self isEmbeddedAttribute:attributeName jsonObject:newObject] || [changedEmbeddedAttributes containsObject:attributeName]) {
+        [self willChangeValueForKey:[self attributeName:attributeName]];
+      }
     }
   }
   [self setAttributesFromJSObject:newObject];
   for(var attributeName in newObject) {
-    if (![self isEmbeddedAttribute:attributeName jsonObject:newObject] && !equalAttributes(currentJSObject[attributeName], newObject[attributeName])) {
-      [self didChangeValueForKey:[self attributeName:attributeName]];
+    if (!equalAttributes(currentJSObject[attributeName], newObject[attributeName])) {
+      if (![self isEmbeddedAttribute:attributeName jsonObject:newObject] || [changedEmbeddedAttributes containsObject:attributeName]) {
+        [self didChangeValueForKey:[self attributeName:attributeName]];
+      }
     }
   }
   [self resetVirgin];
