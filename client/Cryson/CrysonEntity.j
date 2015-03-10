@@ -652,6 +652,14 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
 
 - (void)refreshWithJSObject:(JSObject)newObject
 {
+  var safeSort = function(o) {
+    if (o) {
+      return o.sort(compareNumbers);
+    } else {
+      return o;
+    }
+  }
+
   var equalAttributes = function (sorted, unsorted) {
     if (unsorted instanceof Array) {
       return _.isEqual(sorted, unsorted.sort(compareNumbers));
@@ -669,7 +677,7 @@ var NullableTypes = [CrysonMutableEntitySet setWithArray:["Long", "Integer", "Fl
         for(var ix = 0;ix < embeddedAttribute.length;ix++) {
           embeddedIds[ix] = embeddedAttribute[ix].id;
         }
-        if(!_.isEqual(crysonObject[[self idsAttributeNameFromAttributeName:attributeName]].sort(compareNumbers), embeddedIds.sort(compareNumbers))) {
+        if(!_.isEqual(safeSort(crysonObject[[self idsAttributeNameFromAttributeName:attributeName]]), safeSort(embeddedIds))) {
           [changedEmbeddedAttributes addObject:attributeName];
         }
       } else {
