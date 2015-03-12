@@ -19,9 +19,7 @@
 package se.sperber.cryson.repository;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -207,7 +205,6 @@ public class CrysonRepository {
     return mergedEntity;
   }
 
-  @PostAuthorize("hasPermission(#entity, 'write')")
   public void delete(Object entity) {
     Object persistentEntity = sessionFactory.getCurrentSession().get(entity.getClass(), reflectionHelper.getPrimaryKey(entity));
     sessionFactory.getCurrentSession().delete(persistentEntity);
