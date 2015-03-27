@@ -174,46 +174,19 @@
   return NO;
 }
 
-- (void)refreshDirty
+- (CPArray)dirtyEntities
 {
-  [self refreshDirtyEntities:nil];
-}
-
-- (void)refreshDirtyEntities:(CPArray)entitiesToRefresh
-{
-  var requestedDeletedEntities = [];
-  var requestedDeletedEntityObjects = [];
-  [deletedEntities enumerateObjectsUsingBlock:function(entity){
-    if (entitiesToRefresh == nil || [entitiesToRefresh containsObject:entity]) {
-      var deletedEntityObject = [entity toJSObject];
-      [requestedDeletedEntities addObject:entity];
-      [requestedDeletedEntityObjects addObject:deletedEntityObject];
-    }
-  }];
-
-  var requestedPersistedEntities = [];
-  var requestedPersistedEntityObjects = [];
-  [persistedEntities enumerateObjectsUsingBlock:function(entity) {
-    if (entitiesToRefresh == nil || [entitiesToRefresh containsObject:entity]) {
-      var persistedEntityObject = [entity toJSObject];
-      [requestedPersistedEntities addObject:entity];
-      [requestedPersistedEntityObjects addObject:persistedEntityObject];
-    }
-  }];
-
-  var requestedUpdatedEntities = [];
-  var requestedUpdatedEntityObjects = [];
+  var result = @[];
   var enumerator = [rootEntities entityEnumerator];
   var entity;
   while((entity = [enumerator nextObject]) != nil) {
-    if (entitiesToRefresh == nil || [entitiesToRefresh containsObject:entity]) {
-      if ([entity dirty]) {
-        if (![requestedDeletedEntities containsObject:entity] && ![requestedPersistedEntities containsObject:entity]) {
-          [self refresh:entity fetch:nil delegate:delegate];
-        }
+    if ([entity dirty]) {
+      if (![deletedEntities containsObject:entity] && ![persistedEntities containsObject:entity]) {
+        [result addObject:entity];
       }
     }
   }
+  return result;
 }
 
 /*!
