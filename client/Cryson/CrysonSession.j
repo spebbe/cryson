@@ -23,6 +23,7 @@
 @import "CrysonSessionContext.j"
 @import "CrysonSubSession.j"
 @import "CrysonMutableEntitySet.j"
+@import "CrysonError.j"
 
 @global _
 
@@ -171,6 +172,21 @@
     }
   }
   return NO;
+}
+
+- (CPArray)dirtyEntities
+{
+  var result = @[];
+  var enumerator = [rootEntities entityEnumerator];
+  var entity;
+  while((entity = [enumerator nextObject]) != nil) {
+    if ([entity dirty]) {
+      if (![deletedEntities containsObject:entity] && ![persistedEntities containsObject:entity]) {
+        [result addObject:entity];
+      }
+    }
+  }
+  return result;
 }
 
 /*!
@@ -928,7 +944,9 @@ If the commit failed, the following delegate method is instead called:
   [self finishLoadOperationForDelegate:[context delegate]];
   var entity = [context entityToRefresh];
   [entity refreshWithJSObject:entityJSObject];
-  [[context delegate] crysonSession:self refreshed:entity];
+  if([[context delegate] respondsToSelector:@selector(crysonSession:refreshed:)]) {
+    [[context delegate] crysonSession:self refreshed:entity];
+  }
 }
 
 - (void)refreshFailed:(CPString)errorString statusCode:(CPNumber)statusCode context:(CrysonSessionContext)context
