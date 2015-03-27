@@ -23,6 +23,7 @@
 @import "CrysonSessionContext.j"
 @import "CrysonSubSession.j"
 @import "CrysonMutableEntitySet.j"
+@import "CrysonError.j"
 
 @global _
 
@@ -171,6 +172,48 @@
     }
   }
   return NO;
+}
+
+- (void)refreshDirty
+{
+  [self refreshDirtyEntities:nil];
+}
+
+- (void)refreshDirtyEntities:(CPArray)entitiesToRefresh
+{
+  var requestedDeletedEntities = [];
+  var requestedDeletedEntityObjects = [];
+  [deletedEntities enumerateObjectsUsingBlock:function(entity){
+    if (entitiesToRefresh == nil || [entitiesToRefresh containsObject:entity]) {
+      var deletedEntityObject = [entity toJSObject];
+      [requestedDeletedEntities addObject:entity];
+      [requestedDeletedEntityObjects addObject:deletedEntityObject];
+    }
+  }];
+
+  var requestedPersistedEntities = [];
+  var requestedPersistedEntityObjects = [];
+  [persistedEntities enumerateObjectsUsingBlock:function(entity) {
+    if (entitiesToRefresh == nil || [entitiesToRefresh containsObject:entity]) {
+      var persistedEntityObject = [entity toJSObject];
+      [requestedPersistedEntities addObject:entity];
+      [requestedPersistedEntityObjects addObject:persistedEntityObject];
+    }
+  }];
+
+  var requestedUpdatedEntities = [];
+  var requestedUpdatedEntityObjects = [];
+  var enumerator = [rootEntities entityEnumerator];
+  var entity;
+  while((entity = [enumerator nextObject]) != nil) {
+    if (entitiesToRefresh == nil || [entitiesToRefresh containsObject:entity]) {
+      if ([entity dirty]) {
+        if (![requestedDeletedEntities containsObject:entity] && ![requestedPersistedEntities containsObject:entity]) {
+          [self refresh:entity fetch:nil delegate:delegate];
+        }
+      }
+    }
+  }
 }
 
 /*!
@@ -928,7 +971,9 @@ If the commit failed, the following delegate method is instead called:
   [self finishLoadOperationForDelegate:[context delegate]];
   var entity = [context entityToRefresh];
   [entity refreshWithJSObject:entityJSObject];
-  [[context delegate] crysonSession:self refreshed:entity];
+  if([[context delegate] respondsToSelector:@selector(crysonSession:refreshed:)]) {
+    [[context delegate] crysonSession:self refreshed:entity];
+  }
 }
 
 - (void)refreshFailed:(CPString)errorString statusCode:(CPNumber)statusCode context:(CrysonSessionContext)context
