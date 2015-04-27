@@ -677,6 +677,7 @@ If the commit failed, the following delegate method is instead called:
   var url = baseUrl + "/" + [crysonEntity className] + "/" + [crysonEntity id] + "?fetch=" + [self _associationNamesToFetchString:associationsToFetch];
   var context = [CrysonSessionContext contextWithDelegate:aDelegate];
   [context setEntityToRefresh:crysonEntity];
+  [context setUpdatedEntitiesSnapshot:[self _indexUpdatedEntitiesSnapshot:[[crysonEntity toJSObject]]]];
   [self startLoadOperationForDelegate:aDelegate];
   [remoteService get:url
             delegate:self
@@ -799,6 +800,20 @@ If the commit failed, the following delegate method is instead called:
         if (newSnapshot[attributeName] != oldSnapshot[attributeName]) {
           [updatedEntity willChangeValueForKey:attributeName];
           updatedEntity.crysonObject[attributeName] = newSnapshot[attributeName];
+          [updatedEntity didChangeValueForKey:attributeName];
+        }
+      } else if (attributeType == "UserType_Map") {
+        if (!_.isEqual(newSnapshot[attributeName + "_cryson_usertype"], oldSnapshot[attributeName + "_cryson_usertype"])) {
+          [updatedEntity willChangeValueForKey:attributeName];
+          updatedEntity.crysonUserTypes[attributeName] = [[CrysonMapWrapper alloc] initWithParentEntity:updatedEntity parentAttributeName:attributeName andAttributes:newSnapshot[attributeName + "_cryson_usertype"]];
+          [updatedEntity didChangeValueForKey:attributeName];
+        }
+      } else if (typeof attributeType != "string") {
+        var idAttributeName = newSnapshot[attributeName + "_cryson_id"] ? attributeName + "_cryson_id" : attributeName + "_cryson_ids";
+        if (newSnapshot[idAttributeName] && oldSnapshot[idAttributeName] && !_.isEqual(newSnapshot[idAttributeName], oldSnapshot[idAttributeName])) {
+          [updatedEntity willChangeValueForKey:attributeName];
+          updatedEntity.crysonObject[idAttributeName] = newSnapshot[idAttributeName];
+          delete updatedEntity.crysonAssociations[attributeName];
           [updatedEntity didChangeValueForKey:attributeName];
         }
       }
@@ -943,7 +958,8 @@ If the commit failed, the following delegate method is instead called:
 {
   [self finishLoadOperationForDelegate:[context delegate]];
   var entity = [context entityToRefresh];
-  [entity refreshWithJSObject:entityJSObject];
+  var refreshedUpdatedSnapshots = [self _refreshUpdatedEntitiesSnapshot:[context updatedEntitiesSnapshot] withIds:[]];
+  [self _refreshUpdatedEntities:[entityJSObject] withSnapshot:refreshedUpdatedSnapshots andUpdatedEntities:[entity]];
   if([[context delegate] respondsToSelector:@selector(crysonSession:refreshed:)]) {
     [[context delegate] crysonSession:self refreshed:entity];
   }
