@@ -677,7 +677,7 @@ If the commit failed, the following delegate method is instead called:
   var url = baseUrl + "/" + [crysonEntity className] + "/" + [crysonEntity id] + "?fetch=" + [self _associationNamesToFetchString:associationsToFetch];
   var context = [CrysonSessionContext contextWithDelegate:aDelegate];
   [context setEntityToRefresh:crysonEntity];
-  [context setUpdatedEntitiesSnapshot:[self _indexUpdatedEntitiesSnapshot:[[crysonEntity toJSObject]]]];
+  [context setUpdatedEntitiesSnapshot:[self _indexUpdatedEntitiesSnapshot:[crysonEntity.virginJSObject]]];
   [self startLoadOperationForDelegate:aDelegate];
   [remoteService get:url
             delegate:self
@@ -802,15 +802,69 @@ If the commit failed, the following delegate method is instead called:
           updatedEntity.crysonObject[attributeName] = newSnapshot[attributeName];
           [updatedEntity didChangeValueForKey:attributeName];
         }
+      }
+    }
+  }
+
+  [[nonTamperedEntities allObjects] makeObjectsPerformSelector:@selector(virginize)];
+}
+
+
+- (void)_mergeUpdatedEntities:(CPArray)newSnapshots withSnapshot:(CPDictionary)oldSnapshots andUpdatedEntities:(CPArray)updatedEntities
+{
+  var nonTamperedEntities = [[CrysonMutableEntitySet alloc] init];
+  for(var ix = 0;ix < [updatedEntities count];ix++) {
+    var updatedEntity = [updatedEntities objectAtIndex:ix];
+    var oldSnapshot = [oldSnapshots objectForKey:[updatedEntity className] + "_" + [updatedEntity id]];
+    if (_.isEqual([updatedEntity toJSObject], oldSnapshot)) {
+      [nonTamperedEntities addObject:updatedEntity];
+    }
+  }
+
+  for(var ix = 0;ix < [newSnapshots count];ix++) {
+    var newSnapshot = [newSnapshots objectAtIndex:ix];
+    var entityKey = newSnapshot.crysonEntityClass + "_" + newSnapshot.id;
+    var oldSnapshot = [oldSnapshots objectForKey:entityKey];
+    var entityClass = CPClassFromString(newSnapshot.crysonEntityClass);
+    var definition = [self findDefinitionForClass:entityClass];
+    var checkableTypes = {"String":YES, "Long":YES, "Integer":YES, "Boolean":YES, "int":YES, "long":YES, "boolean":YES, "Float":YES, "float":YES, "Double":YES, "double":YES, "Date":YES};
+    var attributeNames = [definition allKeys];
+    var updatedEntity = [self findCachedByClass:entityClass andId:newSnapshot.id];
+    var localSnapshot = [updatedEntity toJSObject];
+    var changedKeys = [];
+    for(var attributeNameIndex in attributeNames) {
+      var attributeName = attributeNames[attributeNameIndex];
+      var attributeType = [definition objectForKey:attributeName];
+      if (checkableTypes[attributeType] == YES) {
+        if (newSnapshot[attributeName] != oldSnapshot[attributeName] && oldSnapshot[attributeName] == localSnapshot[attributeName]) {
+          [updatedEntity willChangeValueForKey:attributeName];
+          updatedEntity.crysonObject[attributeName] = newSnapshot[attributeName];
+          [updatedEntity didChangeValueForKey:attributeName];
+        }
       } else if (attributeType == "UserType_Map") {
-        if (!_.isEqual(newSnapshot[attributeName + "_cryson_usertype"], oldSnapshot[attributeName + "_cryson_usertype"])) {
+        var userTypeAttributeName = attributeName + "_cryson_usertype";
+        if (!_.isEqual(newSnapshot[userTypeAttributeName], oldSnapshot[userTypeAttributeName]) && _.isEqual(oldSnapshot[userTypeAttributeName], localSnapshot[userTypeAttributeName])) {
           [updatedEntity willChangeValueForKey:attributeName];
           updatedEntity.crysonUserTypes[attributeName] = [[CrysonMapWrapper alloc] initWithParentEntity:updatedEntity parentAttributeName:attributeName andAttributes:newSnapshot[attributeName + "_cryson_usertype"]];
           [updatedEntity didChangeValueForKey:attributeName];
         }
-      } else if (typeof attributeType != "string") {
+      } else if (typeof attributeName == "string" && typeof attributeType != "string") {
+        if (newSnapshot[attributeName]) {
+          var embeddedAttribute = newSnapshot[attributeName];
+          if (embeddedAttribute instanceof Array) {
+            var embeddedIds = [];
+            for(var ix = 0;ix < embeddedAttribute.length;ix++) {
+              var embeddedEntity= [updatedEntity resolveAssociation:embeddedAttribute[ix] withName:attributeName];
+              embeddedIds[ix] = embeddedAttribute[ix].id;
+            }
+            newSnapshot[attributeName + "_cryson_ids"] = embeddedIds.sort(compareNumbers);
+          } else {
+            var embeddedAssociation = [updatedEntity resolveAssociation:embeddedAttribute withName:attributeName];
+            newSnapshot[attributeName + "_cryson_id"] = embeddedAttribute.id;
+          }
+        }
         var idAttributeName = newSnapshot[attributeName + "_cryson_id"] ? attributeName + "_cryson_id" : attributeName + "_cryson_ids";
-        if (newSnapshot[idAttributeName] && oldSnapshot[idAttributeName] && !_.isEqual(newSnapshot[idAttributeName], oldSnapshot[idAttributeName])) {
+        if (newSnapshot[idAttributeName] && oldSnapshot[idAttributeName] && !_.isEqual(newSnapshot[idAttributeName], oldSnapshot[idAttributeName]) && _.isEqual(oldSnapshot[idAttributeName], localSnapshot[idAttributeName])) {
           [updatedEntity willChangeValueForKey:attributeName];
           updatedEntity.crysonObject[idAttributeName] = newSnapshot[idAttributeName];
           delete updatedEntity.crysonAssociations[attributeName];
@@ -959,7 +1013,7 @@ If the commit failed, the following delegate method is instead called:
   [self finishLoadOperationForDelegate:[context delegate]];
   var entity = [context entityToRefresh];
   var refreshedUpdatedSnapshots = [self _refreshUpdatedEntitiesSnapshot:[context updatedEntitiesSnapshot] withIds:[]];
-  [self _refreshUpdatedEntities:[entityJSObject] withSnapshot:refreshedUpdatedSnapshots andUpdatedEntities:[entity]];
+  [self _mergeUpdatedEntities:[entityJSObject] withSnapshot:refreshedUpdatedSnapshots andUpdatedEntities:[entity]];
   if([[context delegate] respondsToSelector:@selector(crysonSession:refreshed:)]) {
     [[context delegate] crysonSession:self refreshed:entity];
   }
