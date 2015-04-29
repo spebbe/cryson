@@ -43,6 +43,10 @@
       hashKeysEnumerator = [hashKeys objectEnumerator],
       currentHashKey = nil;
   while(currentHashKey = [hashKeysEnumerator nextObject]) {
+    if (!![cachedEntitiesByHashKey objectForKey:currentHashKey]) {
+      [CPException raise:CPInternalInconsistencyException
+                  reason:@"Duplicate for same hash in cache: " + currentHashKey + ". May be due to type hierarchy inconsistencies."];
+    }
     [cachedEntitiesByHashKey setObject:entity forKey:currentHashKey];
   }
   [cachedEntities addObject:entity];
