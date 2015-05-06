@@ -76,10 +76,6 @@ var sharedInstance = nil,
 {
   for(var className in rawDefinitions) {
     [definitions setObject:[self _definitionFromRawDefinition:rawDefinitions[className]] forKey:className];
-    var klazz = CPClassFromString(className);
-    if (klazz) {
-      [klazz initializeDefinition:[self _definitionFromRawDefinition:rawDefinitions[className]]];
-    }
   }
 }
 

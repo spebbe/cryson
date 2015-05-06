@@ -26,7 +26,6 @@
 @import "CrysonSession.j"
 @import "CrysonEntityAsyncProxy.j"
 @import "CrysonEntity.j"
-@import "CrysonEntity+Reactive.j"
 @import "CrysonMapWrapper.j"
 @import "RemoteService.j"
 @import "CrysonSubSession.j"
