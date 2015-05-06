@@ -207,7 +207,9 @@
   var rolledBackDeletedEntities = [];
   while((deletedEntity = [deletedEntitiesEnumerator nextObject]) != nil) {
     if (entitiesToRollback == nil || [entitiesToRollback containsObject:deletedEntity]) {
-      [self attach:deletedEntity];
+      if([self findCachedByClass:[deletedEntity class] andId:[deletedEntity id]] == nil) {
+        [self attach:deletedEntity];
+      }
       [rolledBackDeletedEntities addObject:deletedEntity];
     }
   }
@@ -710,7 +712,9 @@ If the commit failed, the following delegate method is instead called:
   while((persistedEntity = [persistedEntitiesEnumerator nextObject]) != nil) {
     [self evict:persistedEntity];
     [persistedEntity setId:temporaryIdMapping[[persistedEntity id]]];
-    [self attach:persistedEntity];
+    if([self findCachedByClass:[persistedEntity class] andId:[persistedEntity id]] == nil) {
+      [self attach:persistedEntity];
+    }
   }
 }
 
