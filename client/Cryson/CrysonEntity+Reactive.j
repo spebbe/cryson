@@ -19,8 +19,6 @@
 @import <RCFoundation/RCFoundation.j>
 @import "CrysonEntity.j"
 
-@global MediaAgency
-
 @implementation CrysonEntity (Reactive)
 
 + (void)initializeDefinition:(CPDictionary)aDefinition
