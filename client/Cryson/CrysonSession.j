@@ -267,7 +267,7 @@
 
   var entityClass = CPClassFromString(entityJSObject.crysonEntityClass);
   var cachedEntity = [self findCachedByClass:entityClass andId:entityJSObject.id];
-  if (cachedEntity) {
+  if (!!cachedEntity) {
     return cachedEntity;
   }
 
@@ -994,11 +994,16 @@ If the commit failed, the following delegate method is instead called:
   for (var ix=0;ix<[entitiesArray count]; ix++) {
     var entityJSObject = [entitiesArray objectAtIndex:ix];
     var cachedEntity = [self findCachedByClass:[context entityClass] andId:entityJSObject.id];
-    if (cachedEntity) {
+    if (!!cachedEntity) {
       [cachedEntity refreshWithJSObject:entityJSObject];
       [foundOrRefreshedEntities addObject:cachedEntity];
     } else {
-      [foundOrRefreshedEntities addObject:[self materializeEntity:entityJSObject]];
+      var materializedEntity = [self materializeEntity:entityJSObject];
+      if(!!materializedEntity) {
+        [foundOrRefreshedEntities addObject:materializedEntity];
+      } else {
+        CPLog.warn("entityJSObject " + entityJSObject + " did not materialize and will be ignored!");
+      }
     }
   }
   [[context delegate] crysonSession:self foundOrRefreshed:foundOrRefreshedEntities byClass:[context entityClass] andIds:[context entityIdsToFindOrRefresh]];
