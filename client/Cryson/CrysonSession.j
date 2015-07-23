@@ -797,11 +797,20 @@ If the commit failed, the following delegate method is instead called:
     var checkableTypes = {"String":YES, "Long":YES, "Integer":YES, "Boolean":YES, "int":YES, "long":YES, "boolean":YES, "Float":YES, "float":YES, "Double":YES, "double":YES, "Date":YES};
     var attributeNames = [definition allKeys];
     var updatedEntity = [self findCachedByClass:entityClass andId:newSnapshot.id];
+    if(updatedEntity == null) {
+      CPLog.error("cached entity is null for "+entityClass+"#"+newSnapshot.id);
+      continue;
+    }
     for(var attributeNameIndex in attributeNames) {
       var attributeName = attributeNames[attributeNameIndex];
       var attributeType = [definition objectForKey:attributeName];
       if (checkableTypes[attributeType] == YES) {
-        if (newSnapshot[attributeName] != oldSnapshot[attributeName]) {
+        if (oldSnapshot == null) {
+          CPLog.warn("oldSnapshot did not exist previously for updated "+entityClass+"#"+newSnapshot.id+ " (possible race condition in CrysonSession._refreshUpdatedEntities)");
+          [updatedEntity willChangeValueForKey:attributeName];
+          updatedEntity.crysonObject[attributeName] = newSnapshot[attributeName];
+          [updatedEntity didChangeValueForKey:attributeName];
+        } else if(newSnapshot[attributeName] != oldSnapshot[attributeName]) {
           [updatedEntity willChangeValueForKey:attributeName];
           updatedEntity.crysonObject[attributeName] = newSnapshot[attributeName];
           [updatedEntity didChangeValueForKey:attributeName];
@@ -840,14 +849,24 @@ If the commit failed, the following delegate method is instead called:
       var attributeName = attributeNames[attributeNameIndex];
       var attributeType = [definition objectForKey:attributeName];
       if (checkableTypes[attributeType] == YES) {
-        if (newSnapshot[attributeName] != oldSnapshot[attributeName] && oldSnapshot[attributeName] == localSnapshot[attributeName]) {
+        if (oldSnapshot == null) {
+          CPLog.warn("oldSnapshot did not exist previously for updated "+entityClass+"#"+newSnapshot.id+ " (possible race condition in CrysonSession._mergeUpdatedEntities -- checkableTypes)");
+          [updatedEntity willChangeValueForKey:attributeName];
+          updatedEntity.crysonObject[attributeName] = newSnapshot[attributeName];
+          [updatedEntity didChangeValueForKey:attributeName];
+        } else if (newSnapshot[attributeName] != oldSnapshot[attributeName] && oldSnapshot[attributeName] == localSnapshot[attributeName]) {
           [updatedEntity willChangeValueForKey:attributeName];
           updatedEntity.crysonObject[attributeName] = newSnapshot[attributeName];
           [updatedEntity didChangeValueForKey:attributeName];
         }
       } else if (attributeType == "UserType_Map") {
         var userTypeAttributeName = attributeName + "_cryson_usertype";
-        if (!_.isEqual(newSnapshot[userTypeAttributeName], oldSnapshot[userTypeAttributeName]) && _.isEqual(oldSnapshot[userTypeAttributeName], localSnapshot[userTypeAttributeName])) {
+        if (oldSnapshot == null) {
+          CPLog.warn("oldSnapshot did not exist previously for updated "+entityClass+"#"+newSnapshot.id+ " (possible race condition in CrysonSession._mergeUpdatedEntities -- userType_Map)");
+          [updatedEntity willChangeValueForKey:attributeName];
+          updatedEntity.crysonUserTypes[attributeName] = [[CrysonMapWrapper alloc] initWithParentEntity:updatedEntity parentAttributeName:attributeName andAttributes:newSnapshot[attributeName + "_cryson_usertype"]];
+          [updatedEntity didChangeValueForKey:attributeName];
+        } else if (!_.isEqual(newSnapshot[userTypeAttributeName], oldSnapshot[userTypeAttributeName]) && _.isEqual(oldSnapshot[userTypeAttributeName], localSnapshot[userTypeAttributeName])) {
           [updatedEntity willChangeValueForKey:attributeName];
           updatedEntity.crysonUserTypes[attributeName] = [[CrysonMapWrapper alloc] initWithParentEntity:updatedEntity parentAttributeName:attributeName andAttributes:newSnapshot[attributeName + "_cryson_usertype"]];
           [updatedEntity didChangeValueForKey:attributeName];
@@ -868,7 +887,9 @@ If the commit failed, the following delegate method is instead called:
           }
         }
         var idAttributeName = newSnapshot[attributeName + "_cryson_id"] ? attributeName + "_cryson_id" : attributeName + "_cryson_ids";
-        if (newSnapshot[idAttributeName] && oldSnapshot[idAttributeName] && !_.isEqual(newSnapshot[idAttributeName], oldSnapshot[idAttributeName]) && _.isEqual(oldSnapshot[idAttributeName], localSnapshot[idAttributeName])) {
+        if(oldSnapshot == null) {
+          CPLog.warn("oldSnapshot did not exist previously for updated "+entityClass+"#"+newSnapshot.id+ " (possible race condition in CrysonSession._mergeUpdatedEntities -- idAttribute)");
+        } else if (newSnapshot[idAttributeName] && oldSnapshot[idAttributeName] && !_.isEqual(newSnapshot[idAttributeName], oldSnapshot[idAttributeName]) && _.isEqual(oldSnapshot[idAttributeName], localSnapshot[idAttributeName])) {
           [updatedEntity willChangeValueForKey:attributeName];
           updatedEntity.crysonObject[idAttributeName] = newSnapshot[idAttributeName];
           delete updatedEntity.crysonAssociations[attributeName];
