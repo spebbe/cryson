@@ -85,7 +85,7 @@ var sharedInstance = nil,
 
 - (void)failedToFindDefinitions:(CPString)errorString statusCode:(CPNumber)statusCode
 {
-  CPLog.error(errorString, statusCode); // TODO: boohoo... what to do?
+  CPLog.error("failed to find definitions ",errorString, statusCode); // TODO: boohoo... what to do?
 }
 
 @end

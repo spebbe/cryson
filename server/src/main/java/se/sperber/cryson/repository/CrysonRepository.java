@@ -235,7 +235,7 @@ public class CrysonRepository {
 
   private void setFetchModeForAssociations(Criteria criteria, Set<String> associationsToFetch) {
     for(String associationToFetch : associationsToFetch) {
-      criteria.setFetchMode(associationToFetch, FetchMode.JOIN);
+      criteria.setFetchMode(associationToFetch, FetchMode.DEFAULT);
     }
   }
 
