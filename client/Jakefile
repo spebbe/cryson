@@ -38,7 +38,7 @@ framework ("Cryson", function(task)
 
     task.setProductName("Cryson");
     task.setIdentifier("se.sperber.Cryson");
-    task.setVersion("0.8.11");
+    task.setVersion("0.8.12");
     task.setAuthor("Björn Sperber");
     task.setEmail("cryson @nospam@ sperber.se");
     task.setSummary("Cryson");
