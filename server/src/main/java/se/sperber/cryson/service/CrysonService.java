@@ -143,11 +143,12 @@ public class CrysonService {
   }
 
   public Response getEntityById(String entityName, Long id, Set<String> associationsToFetch) {
-    Object entity = crysonRepository.findById(qualifiedEntityClassName(entityName), id, associationsToFetch);
+    String qualifiedEntityClassName = qualifiedEntityClassName(entityName);
+    Object entity = crysonRepository.findById(qualifiedEntityClassName, id, associationsToFetch);
     if (entity != null) {
       return Response.ok(crysonSerializer.serialize(entity, associationsToFetch)).build();
     } else {
-      throw new CrysonEntityNotFoundException("Not found", null);
+      throw new CrysonEntityNotFoundException("Not found; entity="+qualifiedEntityClassName + " id="+id, null);
     }
   }
 
