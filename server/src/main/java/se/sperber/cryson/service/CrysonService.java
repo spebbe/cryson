@@ -43,15 +43,22 @@ import se.sperber.cryson.security.Restrictable;
 import se.sperber.cryson.serialization.CrysonSerializer;
 import se.sperber.cryson.serialization.ReflectionHelper;
 import se.sperber.cryson.serialization.UnauthorizedEntity;
+import se.sperber.cryson.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 import javax.persistence.Entity;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static javax.ws.rs.core.HttpHeaders.CONTENT_LENGTH;
+import static se.sperber.cryson.util.StringUtils.countUtf8Bytes;
 
 @Transactional
 @Service
@@ -77,7 +84,7 @@ public class CrysonService {
   private Map<Class<?>, Integer> classInsertionOrder;
 
   private String cachedDefinitions;
-
+  private int cachedDefinitionsContentLength;
   @PostConstruct
   public void findEntityClasses() {
     ClassPathScanningCandidateComponentProvider provider = new ClassPathScanningCandidateComponentProvider(false);
@@ -97,7 +104,10 @@ public class CrysonService {
   }
 
   public Response getEntityDefinition(String entityName) throws Exception {
-    return Response.ok().entity(crysonSerializer.serializeWithoutAugmentation(getEntityDefinitionMap(entityName))).build();
+    String serializedEntity = crysonSerializer.serializeWithoutAugmentation(getEntityDefinitionMap(entityName));
+    return Response.ok(serializedEntity)
+      .header(CONTENT_LENGTH, countUtf8Bytes(serializedEntity))
+      .build();
   }
 
   public Response getEntityDefinitions() throws Exception {
@@ -107,8 +117,11 @@ public class CrysonService {
         entityDefinitions.put(entityClassName, getEntityDefinitionMap(entityClassName));
       }
       cachedDefinitions = crysonSerializer.serializeWithoutAugmentation(entityDefinitions);
+      cachedDefinitionsContentLength = countUtf8Bytes(cachedDefinitions);
     }
-    return Response.ok().entity(cachedDefinitions).build();
+    return Response.ok(cachedDefinitions)
+      .header(CONTENT_LENGTH, cachedDefinitionsContentLength)
+      .build();
   }
 
   private Map<String, String> getEntityDefinitionMap(String entityName) throws ClassNotFoundException {
@@ -146,7 +159,7 @@ public class CrysonService {
     String qualifiedEntityClassName = qualifiedEntityClassName(entityName);
     Object entity = crysonRepository.findById(qualifiedEntityClassName, id, associationsToFetch);
     if (entity != null) {
-      return Response.ok(crysonSerializer.serialize(entity, associationsToFetch)).build();
+      return serialize(entity, associationsToFetch);
     } else {
       throw new CrysonEntityNotFoundException("Not found; entity="+qualifiedEntityClassName + " id="+id, null);
     }
@@ -154,29 +167,29 @@ public class CrysonService {
 
   public Response getEntitiesByIds(final String entityName, List<Long> ids, Set<String> associationsToFetch) {
     final List<Object> entities = crysonRepository.findByIds(qualifiedEntityClassName(entityName), ids, associationsToFetch);
-    return Response.ok(crysonSerializer.serialize(entities, associationsToFetch)).build();
+    return serialize(entities, associationsToFetch);
   }
 
   public Response getEntitiesByExample(String entityName, String exampleJson, Set<String> associationsToFetch) throws Exception {
     Class entityClass = entityClass(entityName);
     Object exampleEntity = crysonSerializer.deserialize(exampleJson, entityClass, null);
     List<Object> entities = crysonRepository.findByExample(qualifiedEntityClassName(entityName), exampleEntity, associationsToFetch);
-    return Response.ok(crysonSerializer.serialize(entities, associationsToFetch)).build();
+    return serialize(entities, associationsToFetch);
   }
 
   public Response getAllEntities(String entityName, Set<String> associationsToFetch) {
     List<Object> entities = crysonRepository.findAll(qualifiedEntityClassName(entityName), associationsToFetch);
-    return Response.ok(crysonSerializer.serialize(entities, associationsToFetch)).build();
+    return serialize(entities, associationsToFetch);
   }
 
   public Response getEntitiesByNamedQuery(String queryName, MultivaluedMap<String, String> queryParameters, Set<String> associationsToFetch) {
     List<Object> entities = crysonRepository.findByNamedQuery(queryName, queryParameters);
-    return Response.ok(crysonSerializer.serialize(entities, associationsToFetch)).build();
+    return serialize(entities, associationsToFetch);
   }
 
   public Response getEntitiesByNamedQueryJson(String queryName, Set<String> associationsToFetch, JsonElement parameters) {
     List<Object> entities = crysonRepository.findByNamedQueryJson(queryName, parameters);
-    return Response.ok(crysonSerializer.serialize(entities, associationsToFetch)).build();
+    return serialize(entities, associationsToFetch);
   }
 
   public Response createEntity(String entityName, String json, ListenerNotificationBatch listenerNotificationBatch) throws Exception {
@@ -185,7 +198,28 @@ public class CrysonService {
     crysonRepository.persist(entity);
     crysonRepository.refresh(entity);
     listenerNotificationBatch.entityCreated(entity);
-    return Response.ok(crysonSerializer.serialize(entity)).build();
+    return serialize(entity);
+  }
+
+  private Response serialize(Object entity) {
+    String serializedEntity = crysonSerializer.serialize(entity);
+    return Response.ok(serializedEntity)
+      .header(CONTENT_LENGTH, countUtf8Bytes(serializedEntity))
+      .build();
+  }
+
+  private Response serialize(Object entity, Set<String> associationsToFetch) {
+    String serializedEntity = crysonSerializer.serialize(entity, associationsToFetch);
+    return Response.ok(serializedEntity)
+      .header(CONTENT_LENGTH, countUtf8Bytes(serializedEntity))
+      .build();
+  }
+
+  private Response serialize(List<Object> entities, Set<String> associationsToFetch) {
+    String serializedEntities = crysonSerializer.serialize(entities, associationsToFetch);
+    return Response.ok(serializedEntities)
+      .header(CONTENT_LENGTH, countUtf8Bytes(serializedEntities))
+      .build();
   }
 
 

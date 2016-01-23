@@ -35,13 +35,18 @@ import se.sperber.cryson.exception.CrysonException;
 import se.sperber.cryson.listener.CrysonListener;
 import se.sperber.cryson.listener.ListenerNotificationBatch;
 import se.sperber.cryson.serialization.CrysonSerializer;
+import se.sperber.cryson.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.*;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static javax.ws.rs.core.HttpHeaders.CONTENT_LENGTH;
 
 @Service
 @Path("/")
@@ -186,7 +191,10 @@ public class CrysonFrontendService {
       List<Object> updatedEntities = new ArrayList<Object>();
       JsonObject responseJsonObject = crysonService.commit(committedEntities, listenerNotificationBatch, persistedEntites, updatedEntities);
       crysonService.refreshEntities(responseJsonObject, listenerNotificationBatch, persistedEntites, updatedEntities);
-      Response response = Response.ok(crysonSerializer.serializeTree(responseJsonObject)).build();
+      String serializedEntity = crysonSerializer.serializeTree(responseJsonObject);
+      Response response = Response.ok(serializedEntity)
+        .header(CONTENT_LENGTH, StringUtils.countUtf8Bytes(serializedEntity))
+        .build();
 
       notifyCommit(listenerNotificationBatch);
       return response;
