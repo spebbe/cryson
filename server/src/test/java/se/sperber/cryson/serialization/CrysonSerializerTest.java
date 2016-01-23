@@ -40,10 +40,12 @@ public class CrysonSerializerTest {
     ReflectionHelper reflectionHelper = new ReflectionHelper();
     LazyAssociationExclusionStrategy lazyAssociationExclusionStrategy = new LazyAssociationExclusionStrategy();
     UserTypeExclusionStrategy userTypeExclusionStrategy = new UserTypeExclusionStrategy();
+    CrysonExcludeExclusionStrategy crysonExcludeExclusionStrategy = new CrysonExcludeExclusionStrategy();
     lazyAssociationExclusionStrategy.setReflectionHelper(reflectionHelper);
     crysonSerializer.setReflectionHelper(reflectionHelper);
     crysonSerializer.setLazyAssociationExclusionStrategy(lazyAssociationExclusionStrategy);
     crysonSerializer.setUserTypeExclusionStrategy(userTypeExclusionStrategy);
+    crysonSerializer.setCrysonExcludeExclusionStrategy(crysonExcludeExclusionStrategy);
     crysonSerializer.setupGson();
     return crysonSerializer;
   }

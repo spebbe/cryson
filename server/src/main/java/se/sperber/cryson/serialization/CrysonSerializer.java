@@ -59,6 +59,9 @@ public class CrysonSerializer {
   @Autowired
   private UserTypeExclusionStrategy userTypeExclusionStrategy;
 
+  @Autowired
+  private CrysonExcludeExclusionStrategy crysonExcludeExclusionStrategy;
+
   @PostConstruct
   public void setupGson() {
     jsonParser = new JsonParser();
@@ -71,7 +74,7 @@ public class CrysonSerializer {
 
     gsonAllInclusive = gsonBuilder.create();
 
-    gsonBuilder.setExclusionStrategies(lazyAssociationExclusionStrategy, userTypeExclusionStrategy);
+    gsonBuilder.setExclusionStrategies(lazyAssociationExclusionStrategy, userTypeExclusionStrategy, crysonExcludeExclusionStrategy);
     gson = gsonBuilder.create();
 
     hibernateProxyTypeAdapter.setGson(gson);
@@ -345,4 +348,7 @@ public class CrysonSerializer {
     this.userTypeExclusionStrategy = userTypeExclusionStrategy;
   }
 
+  public void setCrysonExcludeExclusionStrategy(CrysonExcludeExclusionStrategy crysonExcludeExclusionStrategy) {
+    this.crysonExcludeExclusionStrategy = crysonExcludeExclusionStrategy;
+  }
 }
