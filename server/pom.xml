@@ -9,6 +9,11 @@
   <groupId>se.sperber.cryson</groupId>
   <artifactId>cryson</artifactId>
   <version>0.8.5</version>
+  <properties>
+    <spring.version>4.1.9.RELEASE</spring.version>
+    <spring.security.version>3.2.9.RELEASE</spring.security.version>
+    <jetty.version>9.2.14.v20151106</jetty.version>
+  </properties>
 
   <licenses>
     <license>
@@ -66,63 +71,63 @@
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-servlet</artifactId>
-      <version>9.2.6.v20141205</version>
+      <version>${jetty.version}</version>
       <type>jar</type>
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-core</artifactId>
-      <version>4.1.4.RELEASE</version>
+      <version>${spring.version}</version>
       <type>jar</type>
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-context</artifactId>
-      <version>4.1.4.RELEASE</version>
+      <version>${spring.version}</version>
       <type>jar</type>
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-web</artifactId>
-      <version>4.1.4.RELEASE</version>
+      <version>${spring.version}</version>
       <type>jar</type>
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-orm</artifactId>
-      <version>4.1.4.RELEASE</version>
+      <version>${spring.version}</version>
       <type>jar</type>
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-aop</artifactId>
-      <version>4.1.4.RELEASE</version>
+      <version>${spring.version}</version>
       <type>jar</type>
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-core</artifactId>
-      <version>3.2.5.RELEASE</version>
+      <version>${spring.security.version}</version>
       <type>jar</type>
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-web</artifactId>
-      <version>3.2.5.RELEASE</version>
+      <version>${spring.security.version}</version>
       <type>jar</type>
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-config</artifactId>
-      <version>3.2.5.RELEASE</version>
+      <version>${spring.security.version}</version>
       <type>jar</type>
       <scope>compile</scope>
     </dependency>
