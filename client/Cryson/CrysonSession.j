@@ -1151,8 +1151,12 @@ If the commit failed, the following delegate method is instead called:
     };
     [self startLoadOperationForDelegate:delegate];
     var entityJSObjects = [RemoteService syncPost:url object:payload];
-    if (entityJSObjects == null) {
-      [CPException raise:CPInternalInconsistencyException reason:@"Failed to fetch " + entityClass + " entities"];
+    if (entityJSObjects == nil) {
+      CPLog.warn("Cryson failed to fetch " + entityClass + " entities from url " + url + " with payload " + payload + " - will retry once...");
+      entityJSObjects = [RemoteService syncPost:url object:payload];
+      if(entityJSObjects == nil) {
+        [CPException raise:CPInternalInconsistencyException reason:@"Failed to fetch " + entityClass + " entities"];
+      }
     }
     [self finishLoadOperationForDelegate:delegate];
     for(var ix = 0; ix < [entityJSObjects count]; ix++) {
