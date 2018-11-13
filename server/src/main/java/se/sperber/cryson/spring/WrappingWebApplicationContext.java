@@ -3,11 +3,13 @@ package se.sperber.cryson.spring;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.context.NoSuchMessageException;
+import org.springframework.core.ResolvableType;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.Resource;
 import org.springframework.web.context.WebApplicationContext;
@@ -69,6 +71,11 @@ public class WrappingWebApplicationContext implements WebApplicationContext {
   }
 
   @Override
+  public void publishEvent(Object o) {
+
+  }
+
+  @Override
   public BeanFactory getParentBeanFactory() {
     return wrappedContext.getParentBeanFactory();
   }
@@ -91,6 +98,11 @@ public class WrappingWebApplicationContext implements WebApplicationContext {
   @Override
   public String[] getBeanDefinitionNames() {
     return wrappedContext.getBeanDefinitionNames();
+  }
+
+  @Override
+  public String[] getBeanNamesForType(ResolvableType resolvableType) {
+    return new String[0];
   }
 
   @Override
@@ -154,6 +166,16 @@ public class WrappingWebApplicationContext implements WebApplicationContext {
   }
 
   @Override
+  public <T> ObjectProvider<T> getBeanProvider(Class<T> aClass) {
+    return null;
+  }
+
+  @Override
+  public <T> ObjectProvider<T> getBeanProvider(ResolvableType resolvableType) {
+    return null;
+  }
+
+  @Override
   public boolean containsBean(String s) {
     return wrappedContext.containsBean(s);
   }
@@ -166,6 +188,11 @@ public class WrappingWebApplicationContext implements WebApplicationContext {
   @Override
   public boolean isPrototype(String s) throws NoSuchBeanDefinitionException {
     return wrappedContext.isPrototype(s);
+  }
+
+  @Override
+  public boolean isTypeMatch(String s, ResolvableType resolvableType) throws NoSuchBeanDefinitionException {
+    return false;
   }
 
   @Override

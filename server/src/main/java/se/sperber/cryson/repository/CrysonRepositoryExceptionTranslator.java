@@ -20,14 +20,16 @@ package se.sperber.cryson.repository;
 
 import org.aspectj.lang.annotation.AfterThrowing;
 import org.aspectj.lang.annotation.Aspect;
-import org.hibernate.OptimisticLockException;
 import org.hibernate.StaleObjectStateException;
+import org.hibernate.dialect.lock.OptimisticEntityLockException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.orm.hibernate3.HibernateOptimisticLockingFailureException;
+import org.springframework.orm.hibernate5.HibernateOptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 import se.sperber.cryson.exception.CrysonEntityConflictException;
 import se.sperber.cryson.exception.CrysonException;
+
+import javax.persistence.OptimisticLockException;
 
 @Component
 @Aspect
@@ -40,9 +42,10 @@ public class CrysonRepositoryExceptionTranslator {
     LOGGER.error("Translating exception", t);
     if (t instanceof CrysonException) {
       throw t;
-    } else if (t instanceof OptimisticLockException || t instanceof HibernateOptimisticLockingFailureException || t instanceof StaleObjectStateException) {
+    } else if (t instanceof OptimisticLockException || t instanceof OptimisticEntityLockException || t instanceof HibernateOptimisticLockingFailureException || t instanceof StaleObjectStateException) {
       throw new CrysonEntityConflictException("Optimistic locking failed", t);
     } else {
+      System.out.println(t.getClass().getName());
       throw new CrysonException("Unclassified error: " + t.getMessage(), t);
     }
   }

@@ -17,13 +17,13 @@
           />
 
   <cache
-          name="org.hibernate.cache.StandardQueryCache"
+          name="org.hibernate.cache.spi.QueryCache"
           maxEntriesLocalHeap="100000"
           eternal="true"
           overflowToDisk="true"/>
 
   <cache
-          name="org.hibernate.cache.UpdateTimestampsCache"
+          name="default-update-timestamps-region"
           maxEntriesLocalHeap="100000"
           eternal="true"
           overflowToDisk="true"/>

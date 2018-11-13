@@ -5,16 +5,16 @@
        xmlns:tx="http://www.springframework.org/schema/tx"
        xmlns:aop="http://www.springframework.org/schema/aop"
        xsi:schemaLocation="
-     http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
-     http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.1.xsd
-     http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.1.xsd">
+     http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+     http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+     http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd">
 
   <bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource"
         destroy-method="close" p:driverClassName="${cryson.database.driver}"
         p:url="${cryson.database.url}" p:username="${cryson.database.user}" p:password='${cryson.database.password}' />
 
   <bean id="sessionFactory"
-        class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+        class="org.springframework.orm.hibernate5.LocalSessionFactoryBean">
     <property name="dataSource" ref="dataSource" />
     <property name="packagesToScan">
       <list>
@@ -27,17 +27,21 @@
         hibernate.show_sql=false
         hibernate.hbm2ddl.auto=update
         hibernate.dialect=${cryson.database.dialect}
-        hibernate.cache.region.factory_class=org.hibernate.cache.ehcache.EhCacheRegionFactory
+        hibernate.cache.region.factory_class=org.hibernate.cache.ehcache.internal.EhcacheRegionFactory
         hibernate.cache.use_second_level_cache=${cryson.database.use_cache}
         hibernate.cache.use_query_cache=${cryson.database.use_cache}
         hibernate.cache.use_minimal_puts=${cryson.database.use_cache}
-        net.sf.ehcache.configurationResourceName=/cryson_ehcache.xml
+        hibernate.allow_update_outside_transaction=true
+        hibernate.id.new_generator_mappings=false
+        hibernate.query.sql.jdbc_style_params_base=true
+        hibernate.cache.ehcache.missing_cache_strategy=create
+        net.sf.ehcache.configurationResourceName=cryson_ehcache.xml
       </value>
     </property>
   </bean>
 
   <bean id="transactionManager"
-        class="org.springframework.orm.hibernate4.HibernateTransactionManager"
+        class="org.springframework.orm.hibernate5.HibernateTransactionManager"
         p:sessionFactory-ref="sessionFactory" />
 
   <tx:annotation-driven />

@@ -11,9 +11,28 @@
   <version>0.9.0</version>
 
   <properties>
-    <spring.version>4.1.9.RELEASE</spring.version>
-    <spring.security.version>3.2.9.RELEASE</spring.security.version>
+    <spring.version>5.1.1.RELEASE</spring.version>
+    <spring.security.version>5.1.1.RELEASE</spring.security.version>
+    <hibernate.version>5.3.7.Final</hibernate.version>
+    <hibernate.validator.version>6.0.13.Final</hibernate.validator.version>
+    <mysql.connector.version>5.1.15</mysql.connector.version>
     <jetty.version>9.2.14.v20151106</jetty.version>
+    <jersey.version>1.17.1</jersey.version>
+    <com.google.gson.version>2.2.2</com.google.gson.version>
+    <com.google.guava.version>14.0.1</com.google.guava.version>
+    <slf4j.version>1.7.5</slf4j.version>
+    <apache.commons.httpclient.version>3.1</apache.commons.httpclient.version>
+    <apache.commons.dbcp.version>1.4</apache.commons.dbcp.version>
+    <apache.commons.daemon.version>1.0.3</apache.commons.daemon.version>
+    <apache.derby.version>10.14.2.0</apache.derby.version>
+    <net.sf.ehcache.version>2.6.11</net.sf.ehcache.version>
+    <cglib.version>2.2.2</cglib.version>
+    <javassist.version>3.13.0-GA</javassist.version>
+    <aspectj.version>1.9.2</aspectj.version>
+    <junit.version>4.8.2</junit.version>
+    <mockito.version>1.8.5</mockito.version>
+    <javax.el.version>3.0.1-b10</javax.el.version>
+
   </properties>
 
   <licenses>
@@ -69,30 +88,11 @@
   </build>
 
   <dependencies>
-    <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-servlet</artifactId>
-      <version>${jetty.version}</version>
-      <type>jar</type>
-      <scope>compile</scope>
-    </dependency>
+
+    <!-- SPRING START -->
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-core</artifactId>
-      <version>${spring.version}</version>
-      <type>jar</type>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-context</artifactId>
-      <version>${spring.version}</version>
-      <type>jar</type>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-web</artifactId>
       <version>${spring.version}</version>
       <type>jar</type>
       <scope>compile</scope>
@@ -106,7 +106,14 @@
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
-      <artifactId>spring-aop</artifactId>
+      <artifactId>spring-web</artifactId>
+      <version>${spring.version}</version>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-context</artifactId>
       <version>${spring.version}</version>
       <type>jar</type>
       <scope>compile</scope>
@@ -120,155 +127,39 @@
     </dependency>
     <dependency>
       <groupId>org.springframework.security</groupId>
-      <artifactId>spring-security-web</artifactId>
-      <version>${spring.security.version}</version>
-      <type>jar</type>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-config</artifactId>
       <version>${spring.security.version}</version>
       <type>jar</type>
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>com.sun.jersey</groupId>
-      <artifactId>jersey-server</artifactId>
-      <version>1.17.1</version>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-web</artifactId>
+      <version>${spring.security.version}</version>
       <type>jar</type>
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>com.sun.jersey</groupId>
-      <artifactId>jersey-servlet</artifactId>
-      <version>1.17.1</version>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-aop</artifactId>
+      <version>${spring.version}</version>
       <type>jar</type>
       <scope>compile</scope>
     </dependency>
+    <!-- SPRING END -->
+
+    <!-- HIBERNATE START -->
     <dependency>
       <groupId>org.hibernate</groupId>
       <artifactId>hibernate-core</artifactId>
-      <version>4.3.8.Final</version>
+      <version>${hibernate.version}</version>
       <type>jar</type>
       <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.hibernate</groupId>
-      <artifactId>hibernate-validator</artifactId>
-      <version>4.1.0.Final</version>
-      <type>jar</type>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.google.code.gson</groupId>
-      <artifactId>gson</artifactId>
-      <version>2.2.2</version>
-      <type>jar</type>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>14.0.1</version>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>1.7.5</version>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
-      <version>1.7.5</version>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>jul-to-slf4j</artifactId>
-      <version>1.7.5</version>
-      <type>jar</type>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>cglib</groupId>
-      <artifactId>cglib</artifactId>
-      <version>2.2.2</version>
-      <type>jar</type>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>commons-dbcp</groupId>
-      <artifactId>commons-dbcp</artifactId>
-      <version>1.4</version>
-      <type>jar</type>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.derby</groupId>
-      <artifactId>derby</artifactId>
-      <version>10.8.2.2</version>
-      <type>jar</type>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.javassist</groupId>
-      <artifactId>javassist</artifactId>
-      <version>3.13.0-GA</version>
-      <type>jar</type>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>mysql</groupId>
-      <artifactId>mysql-connector-java</artifactId>
-      <version>5.1.15</version>
-      <type>jar</type>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.aspectj</groupId>
-      <artifactId>aspectjrt</artifactId>
-      <version>1.8.4</version>
-      <type>jar</type>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.aspectj</groupId>
-      <artifactId>aspectjtools</artifactId>
-      <version>1.8.4</version>
-      <type>jar</type>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>commons-daemon</groupId>
-      <artifactId>commons-daemon</artifactId>
-      <version>1.0.3</version>
-      <type>jar</type>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.8.2</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-all</artifactId>
-      <version>1.8.5</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>commons-httpclient</groupId>
-      <artifactId>commons-httpclient</artifactId>
-      <version>3.1</version>
-      <type>jar</type>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.hibernate</groupId>
       <artifactId>hibernate-ehcache</artifactId>
-      <version>4.3.8.Final</version>
+      <version>${hibernate.version}</version>
       <scope>compile</scope>
       <type>jar</type>
       <exclusions>
@@ -281,8 +172,190 @@
     <dependency>
       <groupId>net.sf.ehcache</groupId>
       <artifactId>ehcache-core</artifactId>
-      <version>2.5.7</version>
+      <version>${net.sf.ehcache.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.hibernate</groupId>
+      <artifactId>hibernate-validator</artifactId>
+      <version>${hibernate.validator.version}</version>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
+    <!-- HIBERNATE END -->
+
+    <!-- MYSQL START -->
+    <dependency>
+      <groupId>mysql</groupId>
+      <artifactId>mysql-connector-java</artifactId>
+      <version>${mysql.connector.version}</version>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
+    <!-- MYSQL END -->
+
+    <!-- DERBY START -->
+    <dependency>
+      <groupId>org.apache.derby</groupId>
+      <artifactId>derby</artifactId>
+      <version>${apache.derby.version}</version>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
+    <!-- DERBY END -->
+
+    <!-- APACHE COMMONS START -->
+    <dependency>
+      <groupId>commons-dbcp</groupId>
+      <artifactId>commons-dbcp</artifactId>
+      <version>${apache.commons.dbcp.version}</version>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>commons-daemon</groupId>
+      <artifactId>commons-daemon</artifactId>
+      <version>${apache.commons.daemon.version}</version>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>commons-httpclient</groupId>
+      <artifactId>commons-httpclient</artifactId>
+      <version>${apache.commons.httpclient.version}</version>
+      <type>jar</type>
+      <scope>test</scope>
+    </dependency>
+    <!-- APACHE COMMONS END -->
+
+    <!-- JERSEY START -->
+    <dependency>
+      <groupId>com.sun.jersey</groupId>
+      <artifactId>jersey-server</artifactId>
+      <version>${jersey.version}</version>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.sun.jersey</groupId>
+      <artifactId>jersey-servlet</artifactId>
+      <version>${jersey.version}</version>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
+    <!-- JERSEY END -->
+
+    <!-- JETTY START -->
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-servlet</artifactId>
+      <version>${jetty.version}</version>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
+    <!-- JETTY END -->
+
+    <!-- GOOGLE START -->
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <version>${com.google.gson.version}</version>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>${com.google.guava.version}</version>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
+    <!-- GOOGLE END -->
+
+    <!-- SLF4J START -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${slf4j.version}</version>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+      <version>${slf4j.version}</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>jul-to-slf4j</artifactId>
+      <version>${slf4j.version}</version>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
+    <!-- SLF4J END -->
+
+    <!-- ASPECTJ START -->
+    <dependency>
+      <groupId>org.aspectj</groupId>
+      <artifactId>aspectjrt</artifactId>
+      <version>${aspectj.version}</version>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.aspectj</groupId>
+      <artifactId>aspectjtools</artifactId>
+      <version>${aspectj.version}</version>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
+    <!-- ASPECTJ END -->
+
+    <!-- JUNIT START -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- JUNIT END -->
+
+    <!-- MOCKITO START -->
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-all</artifactId>
+      <version>${mockito.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- MOCKITO END -->
+
+    <!-- JAVASSIST START -->
+    <dependency>
+      <groupId>org.javassist</groupId>
+      <artifactId>javassist</artifactId>
+      <version>${javassist.version}</version>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
+    <!-- JAVASSIST END -->
+
+    <!-- CGLIB START -->
+    <dependency>
+      <groupId>cglib</groupId>
+      <artifactId>cglib</artifactId>
+      <version>${cglib.version}</version>
+    </dependency>
+    <!-- CGLIB END -->
+
+    <!-- JAVAX EL START -->
+    <dependency>
+      <groupId>org.glassfish</groupId>
+      <artifactId>javax.el</artifactId>
+      <version>${javax.el.version}</version>
+      <type>jar</type>
+    </dependency>
+    <!-- JAVAX EL END -->
+
   </dependencies>
 
 </project>

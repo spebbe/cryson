@@ -20,13 +20,13 @@ package se.sperber.cryson.service;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import org.hibernate.OptimisticLockException;
 import org.hibernate.StaleObjectStateException;
+import org.hibernate.dialect.lock.OptimisticEntityLockException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
-import org.springframework.orm.hibernate3.HibernateOptimisticLockingFailureException;
+import org.springframework.orm.hibernate5.HibernateOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -38,14 +38,13 @@ import se.sperber.cryson.serialization.CrysonSerializer;
 import se.sperber.cryson.util.StringUtils;
 
 import javax.annotation.PostConstruct;
+import javax.persistence.OptimisticLockException;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import java.io.Serializable;
-import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.*;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static javax.ws.rs.core.HttpHeaders.CONTENT_LENGTH;
 
 @Service
@@ -233,7 +232,7 @@ public class CrysonFrontendService {
     LOGGER.error("Error", t);
     if (t instanceof CrysonException) {
       return translateCrysonException((CrysonException)t);
-    } else if (t instanceof OptimisticLockException || t instanceof HibernateOptimisticLockingFailureException || t instanceof StaleObjectStateException) {
+    } else if (t instanceof OptimisticLockException || t instanceof OptimisticEntityLockException || t instanceof HibernateOptimisticLockingFailureException || t instanceof StaleObjectStateException) {
       return translateCrysonException(new CrysonEntityConflictException("Optimistic locking failed", t));
     } else if (t instanceof AccessDeniedException) {
       return Response.status(Response.Status.UNAUTHORIZED).entity(buildJsonMessage(t.getMessage())).build();
