@@ -73,10 +73,8 @@ public class CrysonAPITest {
   private static void cleanDatabase() {
     Session session = Application.get(SessionFactory.class).openSession();
     session.beginTransaction();
-    NativeQuery query1 = session.createSQLQuery("DELETE FROM CrysonTestChildEntity");
-    NativeQuery query2 = session.createSQLQuery("DELETE FROM CrysonTestEntity");
-    query1.executeUpdate();
-    query2.executeUpdate();
+    session.createSQLQuery("DELETE FROM CrysonTestChildEntity").executeUpdate();
+    session.createSQLQuery("DELETE FROM CrysonTestEntity").executeUpdate();
     session.getTransaction().commit();
     session.close();
   }

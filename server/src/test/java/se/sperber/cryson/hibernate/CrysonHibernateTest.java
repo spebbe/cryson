@@ -6,8 +6,6 @@ import org.hibernate.query.NativeQuery;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.experimental.runners.Enclosed;
-import org.junit.runner.RunWith;
 import se.sperber.cryson.CrysonServer;
 import se.sperber.cryson.initialization.Application;
 import se.sperber.cryson.testutil.CrysonTestEntity;
@@ -22,6 +20,7 @@ public class CrysonHibernateTest {
   private static void cleanDatabase() {
     Session session = Application.get(SessionFactory.class).openSession();
     session.beginTransaction();
+    session.createSQLQuery("DELETE FROM CrysonTestChildEntity").executeUpdate();
     session.createSQLQuery("DELETE FROM CrysonTestEntity").executeUpdate();
     session.getTransaction().commit();
     session.close();
