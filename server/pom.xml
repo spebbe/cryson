@@ -8,7 +8,7 @@
 
   <groupId>se.sperber.cryson</groupId>
   <artifactId>cryson</artifactId>
-  <version>0.9.0</version>
+  <version>0.9.1</version>
 
   <properties>
     <spring.version>5.1.1.RELEASE</spring.version>
@@ -32,7 +32,6 @@
     <junit.version>4.8.2</junit.version>
     <mockito.version>1.8.5</mockito.version>
     <javax.el.version>3.0.1-b10</javax.el.version>
-
   </properties>
 
   <licenses>
@@ -83,6 +82,20 @@
           <optimize>true</optimize>
           <debug>true</debug>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>3.0.1</version>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
@@ -175,7 +188,7 @@
       <version>${net.sf.ehcache.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.hibernate</groupId>
+      <groupId>org.hibernate.validator</groupId>
       <artifactId>hibernate-validator</artifactId>
       <version>${hibernate.validator.version}</version>
       <type>jar</type>
