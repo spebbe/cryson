@@ -35,7 +35,7 @@
         hibernate.id.new_generator_mappings=false
         hibernate.query.sql.jdbc_style_params_base=true
         hibernate.cache.ehcache.missing_cache_strategy=create
-        net.sf.ehcache.configurationResourceName=cryson_ehcache.xml
+        net.sf.ehcache.configurationResourceName=/cryson_ehcache.xml
       </value>
     </property>
   </bean>
