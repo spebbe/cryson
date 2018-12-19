@@ -72,7 +72,7 @@ public class WrappingWebApplicationContext implements WebApplicationContext {
 
   @Override
   public void publishEvent(Object o) {
-
+    wrappedContext.publishEvent(o);
   }
 
   @Override
@@ -102,7 +102,7 @@ public class WrappingWebApplicationContext implements WebApplicationContext {
 
   @Override
   public String[] getBeanNamesForType(ResolvableType resolvableType) {
-    return new String[0];
+    return wrappedContext.getBeanNamesForType(resolvableType);
   }
 
   @Override
@@ -167,12 +167,12 @@ public class WrappingWebApplicationContext implements WebApplicationContext {
 
   @Override
   public <T> ObjectProvider<T> getBeanProvider(Class<T> aClass) {
-    return null;
+    return wrappedContext.getBeanProvider(aClass);
   }
 
   @Override
   public <T> ObjectProvider<T> getBeanProvider(ResolvableType resolvableType) {
-    return null;
+    return wrappedContext.getBeanProvider(resolvableType);
   }
 
   @Override
@@ -192,7 +192,7 @@ public class WrappingWebApplicationContext implements WebApplicationContext {
 
   @Override
   public boolean isTypeMatch(String s, ResolvableType resolvableType) throws NoSuchBeanDefinitionException {
-    return false;
+    return wrappedContext.isTypeMatch(s, resolvableType);
   }
 
   @Override

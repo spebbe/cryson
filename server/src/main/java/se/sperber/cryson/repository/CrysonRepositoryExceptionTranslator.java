@@ -45,7 +45,6 @@ public class CrysonRepositoryExceptionTranslator {
     } else if (t instanceof OptimisticLockException || t instanceof OptimisticEntityLockException || t instanceof HibernateOptimisticLockingFailureException || t instanceof StaleObjectStateException) {
       throw new CrysonEntityConflictException("Optimistic locking failed", t);
     } else {
-      System.out.println(t.getClass().getName());
       throw new CrysonException("Unclassified error: " + t.getMessage(), t);
     }
   }
