@@ -31,6 +31,7 @@ import org.apache.commons.httpclient.methods.PutMethod;
 import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.query.NativeQuery;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -71,8 +72,10 @@ public class CrysonAPITest {
 
   private static void cleanDatabase() {
     Session session = Application.get(SessionFactory.class).openSession();
+    session.beginTransaction();
     session.createSQLQuery("DELETE FROM CrysonTestChildEntity").executeUpdate();
     session.createSQLQuery("DELETE FROM CrysonTestEntity").executeUpdate();
+    session.getTransaction().commit();
     session.close();
   }
 

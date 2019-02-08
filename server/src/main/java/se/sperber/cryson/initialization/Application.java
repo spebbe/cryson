@@ -32,7 +32,7 @@ import java.util.Properties;
 public class Application {
 
   private static AnnotationConfigApplicationContext context = null;
-  
+
   private static Properties properties = null;
 
   public static <T> T get(Class<T> type) {
