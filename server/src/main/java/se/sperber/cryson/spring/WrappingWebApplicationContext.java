@@ -101,8 +101,23 @@ public class WrappingWebApplicationContext implements WebApplicationContext {
   }
 
   @Override
+  public <T> ObjectProvider<T> getBeanProvider(Class<T> aClass, boolean b) {
+    return wrappedContext.getBeanProvider(aClass, b);
+  }
+
+  @Override
+  public <T> ObjectProvider<T> getBeanProvider(ResolvableType resolvableType, boolean b) {
+    return wrappedContext.getBeanProvider(resolvableType, b);
+  }
+
+  @Override
   public String[] getBeanNamesForType(ResolvableType resolvableType) {
     return wrappedContext.getBeanNamesForType(resolvableType);
+  }
+
+  @Override
+  public String[] getBeanNamesForType(ResolvableType resolvableType, boolean b, boolean b1) {
+    return wrappedContext.getBeanNamesForType(resolvableType, b, b1);
   }
 
   @Override
@@ -138,6 +153,11 @@ public class WrappingWebApplicationContext implements WebApplicationContext {
   @Override
   public <A extends Annotation> A findAnnotationOnBean(String s, Class<A> aClass) throws NoSuchBeanDefinitionException {
     return wrappedContext.findAnnotationOnBean(s, aClass);
+  }
+
+  @Override
+  public <A extends Annotation> A findAnnotationOnBean(String s, Class<A> aClass, boolean b) throws NoSuchBeanDefinitionException {
+    return wrappedContext.findAnnotationOnBean(s, aClass, b);
   }
 
   @Override
@@ -203,6 +223,11 @@ public class WrappingWebApplicationContext implements WebApplicationContext {
   @Override
   public Class<?> getType(String s) throws NoSuchBeanDefinitionException {
     return wrappedContext.getType(s);
+  }
+
+  @Override
+  public Class<?> getType(String s, boolean b) throws NoSuchBeanDefinitionException {
+    return null;
   }
 
   @Override
