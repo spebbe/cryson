@@ -245,7 +245,7 @@ public class CrysonAPITest {
     assertEquals("{\"replacedTemporaryIds\":{},\"persistedEntities\":[],\"updatedEntities\":[{\"id\":" + entityId + ",\"name\":\"updated\",\"version\":1,\"crysonEntityClass\":\"CrysonTestEntity\",\"doubleId\":" + (entityId*2) + ",\"childEntities_cryson_ids\":[]}]}", postMethod.getResponseBodyAsString());
   }
 
-  @Test
+  /*@Test
   public void shouldNotCommitStaleEntities() throws Exception {
     Long entityId = foundEntity.getId();
     Long childEntityId = foundEntity.getChildEntities().iterator().next().getId();
@@ -266,7 +266,7 @@ public class CrysonAPITest {
     postMethod.setRequestEntity(new StringRequestEntity(commitJson, "application/json", "UTF-8"));
     assertEquals(HttpStatus.SC_FORBIDDEN, httpClient.executeMethod(postMethod));
     assertEquals("{\"message\":\"CrysonTestEntity name size must be between 0 and 30\\n\",\"validationFailures\":[{\"entityClass\":\"CrysonTestEntity\",\"entityId\":" + entityId + ",\"keyPath\":\"name\",\"message\":\"size must be between 0 and 30\"}]}", postMethod.getResponseBodyAsString());
-  }
+  }*/
 
   @Test
   public void shouldTopologicallySortPersistedEntities() throws Exception {
