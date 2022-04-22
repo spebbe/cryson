@@ -13,8 +13,8 @@
   <properties>
     <spring.version>5.3.19</spring.version>
     <spring.security.version>5.1.1.RELEASE</spring.security.version>
-    <hibernate.version>5.3.7.Final</hibernate.version>
-    <hibernate.validator.version>6.0.13.Final</hibernate.validator.version>
+    <hibernate.version>5.6.5.Final</hibernate.version>
+    <hibernate.validator.version>6.2.3.Final</hibernate.validator.version>
     <mysql.connector.version>5.1.15</mysql.connector.version>
     <jetty.version>9.2.14.v20151106</jetty.version>
     <jersey.version>1.17.1</jersey.version>
