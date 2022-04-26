@@ -56,6 +56,7 @@ public class CrysonAPITest {
     crysonServer = new CrysonServer();
     crysonServer.init(new String[]{"cryson-test.properties"});
     crysonServer.start();
+    cleanDatabase();
     crysonSerializer = Application.get(CrysonSerializer.class);
     setupHttpClient();
   }
@@ -80,7 +81,6 @@ public class CrysonAPITest {
   @AfterClass
   public static void teardown() throws Exception
   {
-    cleanDatabase();
     crysonServer.stop();
     crysonServer.destroy();
   }
