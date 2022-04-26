@@ -25,8 +25,7 @@
     <property name="hibernateProperties">
       <value>
         hibernate.show_sql=false
-        hibernate.hbm2ddl.auto=update
-        hibernate.dialect=${cryson.database.dialect}
+        hibernate.hbm2ddl.auto=create
         hibernate.cache.region.factory_class=org.hibernate.cache.ehcache.internal.EhcacheRegionFactory
         hibernate.cache.use_second_level_cache=${cryson.database.use_cache}
         hibernate.cache.use_query_cache=${cryson.database.use_cache}
