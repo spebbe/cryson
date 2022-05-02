@@ -25,13 +25,12 @@
     <property name="hibernateProperties">
       <value>
         hibernate.show_sql=false
-        hibernate.hbm2ddl.auto=update
-        hibernate.dialect=${cryson.database.dialect}
+        hibernate.hbm2ddl.auto=create
         hibernate.cache.region.factory_class=org.hibernate.cache.ehcache.internal.EhcacheRegionFactory
         hibernate.cache.use_second_level_cache=${cryson.database.use_cache}
         hibernate.cache.use_query_cache=${cryson.database.use_cache}
         hibernate.cache.use_minimal_puts=${cryson.database.use_cache}
-        hibernate.allow_update_outside_transaction=true
+        hibernate.allow_update_outside_transaction=false
         hibernate.id.new_generator_mappings=false
         hibernate.query.sql.jdbc_style_params_base=true
         hibernate.cache.ehcache.missing_cache_strategy=create

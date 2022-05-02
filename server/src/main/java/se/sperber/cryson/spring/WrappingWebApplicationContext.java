@@ -71,8 +71,8 @@ public class WrappingWebApplicationContext implements WebApplicationContext {
   }
 
   @Override
-  public void publishEvent(Object o) {
-    wrappedContext.publishEvent(o);
+  public void publishEvent(Object event) {
+    wrappedContext.publishEvent(event);
   }
 
   @Override
@@ -81,13 +81,13 @@ public class WrappingWebApplicationContext implements WebApplicationContext {
   }
 
   @Override
-  public boolean containsLocalBean(String s) {
-    return wrappedContext.containsLocalBean(s);
+  public boolean containsLocalBean(String name) {
+    return wrappedContext.containsLocalBean(name);
   }
 
   @Override
-  public boolean containsBeanDefinition(String s) {
-    return wrappedContext.containsBeanDefinition(s);
+  public boolean containsBeanDefinition(String beanName) {
+    return wrappedContext.containsBeanDefinition(beanName);
   }
 
   @Override
@@ -101,73 +101,93 @@ public class WrappingWebApplicationContext implements WebApplicationContext {
   }
 
   @Override
+  public <T> ObjectProvider<T> getBeanProvider(Class<T> requiredType, boolean allowEagerInit) {
+    return wrappedContext.getBeanProvider(requiredType, allowEagerInit);
+  }
+
+  @Override
+  public <T> ObjectProvider<T> getBeanProvider(ResolvableType resolvableType, boolean allowEagerInit) {
+    return wrappedContext.getBeanProvider(resolvableType, allowEagerInit);
+  }
+
+  @Override
   public String[] getBeanNamesForType(ResolvableType resolvableType) {
     return wrappedContext.getBeanNamesForType(resolvableType);
   }
 
   @Override
-  public String[] getBeanNamesForType(Class<?> aClass) {
-    return wrappedContext.getBeanNamesForType(aClass);
+  public String[] getBeanNamesForType(ResolvableType resolvableType, boolean includeNonSingletons, boolean allowEagerInit) {
+    return wrappedContext.getBeanNamesForType(resolvableType, includeNonSingletons, allowEagerInit);
   }
 
   @Override
-  public String[] getBeanNamesForType(Class<?> aClass, boolean b, boolean b1) {
-    return wrappedContext.getBeanNamesForType(aClass, b, b1);
+  public String[] getBeanNamesForType(Class<?> type) {
+    return wrappedContext.getBeanNamesForType(type);
   }
 
   @Override
-  public <T> Map<String, T> getBeansOfType(Class<T> aClass) throws BeansException {
-    return wrappedContext.getBeansOfType(aClass);
+  public String[] getBeanNamesForType(Class<?> type, boolean includeNonSingletons, boolean allowEagerInit) {
+    return wrappedContext.getBeanNamesForType(type, includeNonSingletons, allowEagerInit);
   }
 
   @Override
-  public <T> Map<String, T> getBeansOfType(Class<T> aClass, boolean b, boolean b1) throws BeansException {
-    return wrappedContext.getBeansOfType(aClass, b, b1);
+  public <T> Map<String, T> getBeansOfType(Class<T> type) throws BeansException {
+    return wrappedContext.getBeansOfType(type);
   }
 
   @Override
-  public String[] getBeanNamesForAnnotation(Class<? extends Annotation> aClass) {
-    return wrappedContext.getBeanNamesForAnnotation(aClass);
+  public <T> Map<String, T> getBeansOfType(Class<T> type, boolean includeNonSingletons, boolean allowEagerInit) throws BeansException {
+    return wrappedContext.getBeansOfType(type, includeNonSingletons, allowEagerInit);
   }
 
   @Override
-  public Map<String, Object> getBeansWithAnnotation(Class<? extends Annotation> aClass) throws BeansException {
-    return null;
+  public String[] getBeanNamesForAnnotation(Class<? extends Annotation> annotationType) {
+    return wrappedContext.getBeanNamesForAnnotation(annotationType);
   }
 
   @Override
-  public <A extends Annotation> A findAnnotationOnBean(String s, Class<A> aClass) throws NoSuchBeanDefinitionException {
-    return wrappedContext.findAnnotationOnBean(s, aClass);
+  public Map<String, Object> getBeansWithAnnotation(Class<? extends Annotation> annotationType) throws BeansException {
+    return wrappedContext.getBeansWithAnnotation(annotationType);
   }
 
   @Override
-  public Object getBean(String s) throws BeansException {
-    return wrappedContext.getBean(s);
+  public <A extends Annotation> A findAnnotationOnBean(String beanName, Class<A> annotationType) throws NoSuchBeanDefinitionException {
+    return wrappedContext.findAnnotationOnBean(beanName, annotationType);
   }
 
   @Override
-  public <T> T getBean(String s, Class<T> aClass) throws BeansException {
-    return wrappedContext.getBean(s, aClass);
+  public <A extends Annotation> A findAnnotationOnBean(String beanName, Class<A> annotationType, boolean allowFactoryBeanInit) throws NoSuchBeanDefinitionException {
+    return wrappedContext.findAnnotationOnBean(beanName, annotationType, allowFactoryBeanInit);
   }
 
   @Override
-  public <T> T getBean(Class<T> aClass) throws BeansException {
-    return getBean(aClass);
+  public Object getBean(String name) throws BeansException {
+    return wrappedContext.getBean(name);
   }
 
   @Override
-  public Object getBean(String s, Object... objects) throws BeansException {
-    return wrappedContext.getBean(s, objects);
+  public <T> T getBean(String name, Class<T> requiredType) throws BeansException {
+    return wrappedContext.getBean(name, requiredType);
   }
 
   @Override
-  public <T> T getBean(Class<T> aClass, Object... objects) throws BeansException {
-    return wrappedContext.getBean(aClass, objects);
+  public <T> T getBean(Class<T> type) throws BeansException {
+    return getBean(type);
   }
 
   @Override
-  public <T> ObjectProvider<T> getBeanProvider(Class<T> aClass) {
-    return wrappedContext.getBeanProvider(aClass);
+  public Object getBean(String name, Object... args) throws BeansException {
+    return wrappedContext.getBean(name, args);
+  }
+
+  @Override
+  public <T> T getBean(Class<T> requiredType, Object... args) throws BeansException {
+    return wrappedContext.getBean(requiredType, args);
+  }
+
+  @Override
+  public <T> ObjectProvider<T> getBeanProvider(Class<T> requiredType) {
+    return wrappedContext.getBeanProvider(requiredType);
   }
 
   @Override
@@ -176,38 +196,43 @@ public class WrappingWebApplicationContext implements WebApplicationContext {
   }
 
   @Override
-  public boolean containsBean(String s) {
-    return wrappedContext.containsBean(s);
+  public boolean containsBean(String name) {
+    return wrappedContext.containsBean(name);
   }
 
   @Override
-  public boolean isSingleton(String s) throws NoSuchBeanDefinitionException {
-    return wrappedContext.isSingleton(s);
+  public boolean isSingleton(String name) throws NoSuchBeanDefinitionException {
+    return wrappedContext.isSingleton(name);
   }
 
   @Override
-  public boolean isPrototype(String s) throws NoSuchBeanDefinitionException {
-    return wrappedContext.isPrototype(s);
+  public boolean isPrototype(String name) throws NoSuchBeanDefinitionException {
+    return wrappedContext.isPrototype(name);
   }
 
   @Override
-  public boolean isTypeMatch(String s, ResolvableType resolvableType) throws NoSuchBeanDefinitionException {
-    return wrappedContext.isTypeMatch(s, resolvableType);
+  public boolean isTypeMatch(String name, ResolvableType resolvableType) throws NoSuchBeanDefinitionException {
+    return wrappedContext.isTypeMatch(name, resolvableType);
   }
 
   @Override
-  public boolean isTypeMatch(String s, Class<?> aClass) throws NoSuchBeanDefinitionException {
-    return wrappedContext.isTypeMatch(s, aClass);
+  public boolean isTypeMatch(String name, Class<?> typeToMatch) throws NoSuchBeanDefinitionException {
+    return wrappedContext.isTypeMatch(name, typeToMatch);
   }
 
   @Override
-  public Class<?> getType(String s) throws NoSuchBeanDefinitionException {
-    return wrappedContext.getType(s);
+  public Class<?> getType(String name) throws NoSuchBeanDefinitionException {
+    return wrappedContext.getType(name);
   }
 
   @Override
-  public String[] getAliases(String s) {
-    return wrappedContext.getAliases(s);
+  public Class<?> getType(String name, boolean allowFactoryBeanInit) throws NoSuchBeanDefinitionException {
+    return wrappedContext.getType(name, allowFactoryBeanInit);
+  }
+
+  @Override
+  public String[] getAliases(String name) {
+    return wrappedContext.getAliases(name);
   }
 
   @Override
@@ -216,13 +241,13 @@ public class WrappingWebApplicationContext implements WebApplicationContext {
   }
 
   @Override
-  public String getMessage(String s, Object[] objects, String s1, Locale locale) {
-    return wrappedContext.getMessage(s, objects, s1, locale);
+  public String getMessage(String code, Object[] args, String defaultMessage, Locale locale) {
+    return wrappedContext.getMessage(code, args, defaultMessage, locale);
   }
 
   @Override
-  public String getMessage(String s, Object[] objects, Locale locale) throws NoSuchMessageException {
-    return wrappedContext.getMessage(s, objects, locale);
+  public String getMessage(String code, Object[] args, Locale locale) throws NoSuchMessageException {
+    return wrappedContext.getMessage(code, args, locale);
   }
 
   @Override
@@ -231,13 +256,13 @@ public class WrappingWebApplicationContext implements WebApplicationContext {
   }
 
   @Override
-  public Resource[] getResources(String s) throws IOException {
-    return wrappedContext.getResources(s);
+  public Resource[] getResources(String locationPattern) throws IOException {
+    return wrappedContext.getResources(locationPattern);
   }
 
   @Override
-  public Resource getResource(String s) {
-    return wrappedContext.getResource(s);
+  public Resource getResource(String location) {
+    return wrappedContext.getResource(location);
   }
 
   @Override

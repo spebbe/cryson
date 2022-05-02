@@ -31,7 +31,6 @@ import org.apache.commons.httpclient.methods.PutMethod;
 import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
-import org.hibernate.query.NativeQuery;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -57,8 +56,8 @@ public class CrysonAPITest {
     crysonServer = new CrysonServer();
     crysonServer.init(new String[]{"cryson-test.properties"});
     crysonServer.start();
-    crysonSerializer = Application.get(CrysonSerializer.class);
     cleanDatabase();
+    crysonSerializer = Application.get(CrysonSerializer.class);
     setupHttpClient();
   }
 
