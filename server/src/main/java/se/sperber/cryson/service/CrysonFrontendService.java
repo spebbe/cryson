@@ -156,11 +156,12 @@ public class CrysonFrontendService {
 
   @POST
   @Path("namedQuery/{query_name}")
-  public Response getEntitiesByNamedQueryPost(@PathParam("query_name") String queryName, @Context UriInfo uriInfo, @QueryParam("fetch") String rawAssociationsToFetch, String json) {
+  public Response getEntitiesByNamedQueryPost(@PathParam("query_name") String queryName, @Context UriInfo uriInfo, @QueryParam("fetch") String rawAssociationsToFetch, @QueryParam("exclude") String rawAssociationsToExclude,String json) {
     try {
       JsonElement parameters = crysonSerializer.parse(json);
       Set<String> associationsToFetch = splitAssociationsToFetch(rawAssociationsToFetch);
-      return crysonService.getEntitiesByNamedQueryJson(queryName, associationsToFetch, parameters);
+      Set<String> associationsToExclude = splitAssociationsToFetch(rawAssociationsToExclude);
+      return crysonService.getEntitiesByNamedQueryJson(queryName, associationsToFetch, associationsToExclude, parameters);
     } catch(Throwable t) {
       return translateThrowable(t);
     }

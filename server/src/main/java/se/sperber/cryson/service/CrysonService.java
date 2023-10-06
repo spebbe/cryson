@@ -187,9 +187,9 @@ public class CrysonService {
     return serialize(entities, associationsToFetch);
   }
 
-  public Response getEntitiesByNamedQueryJson(String queryName, Set<String> associationsToFetch, JsonElement parameters) {
+  public Response getEntitiesByNamedQueryJson(String queryName, Set<String> associationsToFetch, Set<String> associationsToExclude, JsonElement parameters) {
     List<Object> entities = crysonRepository.findByNamedQueryJson(queryName, parameters);
-    return serialize(entities, associationsToFetch);
+    return serialize(entities, associationsToFetch, associationsToExclude);
   }
 
   public Response createEntity(String entityName, String json, ListenerNotificationBatch listenerNotificationBatch) throws Exception {
@@ -217,6 +217,13 @@ public class CrysonService {
 
   private Response serialize(List<Object> entities, Set<String> associationsToFetch) {
     String serializedEntities = crysonSerializer.serialize(entities, associationsToFetch);
+    return Response.ok(serializedEntities)
+      .header(CONTENT_LENGTH, countUtf8Bytes(serializedEntities))
+      .build();
+  }
+
+  private Response serialize(List<Object> entities, Set<String> associationsToFetch, Set<String> associationsToExclude) {
+    String serializedEntities = crysonSerializer.parallelSerialize(entities, associationsToFetch, associationsToExclude);
     return Response.ok(serializedEntities)
       .header(CONTENT_LENGTH, countUtf8Bytes(serializedEntities))
       .build();

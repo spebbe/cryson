@@ -37,6 +37,7 @@ import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PostFilter;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import se.sperber.cryson.exception.CrysonValidationFailedException;
 import se.sperber.cryson.security.Restrictable;
 import se.sperber.cryson.serialization.ReflectionHelper;
@@ -50,6 +51,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 @Repository
 public class CrysonRepository {
@@ -150,6 +152,11 @@ public class CrysonRepository {
     return query.list();
   }
 
+  @Transactional(readOnly = true)
+  public <T> T withReadOnlyTransaction(Supplier<T> block) {
+    return block.get();
+  }
+
   @PostFilter("hasPermission(filterObject, 'read')")
   public List<Object> findByNamedQueryJson(String queryName, JsonElement parameters) {
     Query query = sessionFactory.getCurrentSession().getNamedQuery(queryName)
@@ -235,7 +242,7 @@ public class CrysonRepository {
 
   private void setFetchModeForAssociations(Criteria criteria, Set<String> associationsToFetch) {
     for(String associationToFetch : associationsToFetch) {
-      criteria.setFetchMode(associationToFetch, FetchMode.DEFAULT);
+      criteria.setFetchMode(associationToFetch, FetchMode.JOIN);
     }
   }
 
