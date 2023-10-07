@@ -37,6 +37,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import se.sperber.cryson.exception.CrysonEntityNotFoundException;
+import se.sperber.cryson.listener.CrysonLazyInitField;
 import se.sperber.cryson.listener.ListenerNotificationBatch;
 import se.sperber.cryson.repository.CrysonRepository;
 import se.sperber.cryson.security.Restrictable;
@@ -55,6 +56,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static javax.ws.rs.core.HttpHeaders.CONTENT_LENGTH;
@@ -189,7 +191,32 @@ public class CrysonService {
 
   public Response getEntitiesByNamedQueryJson(String queryName, Set<String> associationsToFetch, Set<String> associationsToExclude, JsonElement parameters) {
     List<Object> entities = crysonRepository.findByNamedQueryJson(queryName, parameters);
+
     return serialize(entities, associationsToFetch, associationsToExclude);
+  }
+
+  private Map<String, Map<Long, Set<Long>>> lazyFields(List<Object> entities) {
+    if (entities.size() == 0) return Collections.emptyMap();
+    final Set<Long> objectIds = entities.stream().map(reflectionHelper::getPrimaryKey).collect(Collectors.toSet());
+    Object entity = entities.get(0);
+    if (entity instanceof CrysonLazyInitField) {
+      CrysonLazyInitField en = (CrysonLazyInitField) entity;
+      Map<String, String> queries = en.lazyFieldQueries();
+      for (String query : queries.keySet()) {
+        List<Object> results = crysonRepository.findByNativeQuery(query, objectIds);
+        final Map<Long, Set<Long>> extract = extract(results);
+      }
+
+    }
+    return Collections.emptyMap();
+  }
+
+  private Map<Long, Set<Long>> extract(List<Object> results){
+    for (Object result : results) {
+      System.err.println(result);
+    }
+
+    return Collections.emptyMap();
   }
 
   public Response createEntity(String entityName, String json, ListenerNotificationBatch listenerNotificationBatch) throws Exception {

@@ -246,7 +246,6 @@ public class CrysonSerializer {
                 jsonElement.getAsJsonObject().add(field.getName() + "_cryson_id", JsonNull.INSTANCE);
               }
             }
-
           }
         }
       }

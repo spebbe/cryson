@@ -228,6 +228,13 @@ public class CrysonRepository {
     return criteria.uniqueResult();
   }
 
+  public List<Object> findByNativeQuery(String query, Set<Long> objectIds) {
+    final org.hibernate.query.Query nativeQuery = sessionFactory.getCurrentSession().createSQLQuery(query)
+      .setResultTransformer(DistinctRootEntityResultTransformer.INSTANCE);
+      nativeQuery.setParameterList(0, objectIds);
+    return nativeQuery.list();
+  }
+
   private void throwConstraintViolations(Set<ConstraintViolation<Object>> constraintViolations) {
     if (constraintViolations.size() > 0) {
       StringBuilder violationMessages = new StringBuilder();
