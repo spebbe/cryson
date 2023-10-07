@@ -228,11 +228,12 @@ public class CrysonRepository {
     return criteria.uniqueResult();
   }
 
-  public List<Object> findByNativeQuery(String query, Set<Long> objectIds) {
-    final org.hibernate.query.Query nativeQuery = sessionFactory.getCurrentSession().createSQLQuery(query)
-      .setResultTransformer(DistinctRootEntityResultTransformer.INSTANCE);
+  public List<Object[]> findByNativeQuery(String query, Set<Long> objectIds) {
+    final org.hibernate.query.Query nativeQuery = sessionFactory.getCurrentSession()
+      .createSQLQuery(query);
       nativeQuery.setParameterList(0, objectIds);
-    return nativeQuery.list();
+    final List<Object[]> queryResultList = nativeQuery.getResultList();
+    return queryResultList;
   }
 
   private void throwConstraintViolations(Set<ConstraintViolation<Object>> constraintViolations) {

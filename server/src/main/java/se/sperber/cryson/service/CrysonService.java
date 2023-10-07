@@ -191,32 +191,33 @@ public class CrysonService {
 
   public Response getEntitiesByNamedQueryJson(String queryName, Set<String> associationsToFetch, Set<String> associationsToExclude, JsonElement parameters) {
     List<Object> entities = crysonRepository.findByNamedQueryJson(queryName, parameters);
-
-    return serialize(entities, associationsToFetch, associationsToExclude);
+    Map<String, Map<Number, Set<Number>>> lazyFields = lazyFields(entities);
+    return serialize(entities, associationsToFetch, lazyFields);
   }
 
-  private Map<String, Map<Long, Set<Long>>> lazyFields(List<Object> entities) {
+  private Map<String, Map<Number, Set<Number>>> lazyFields(List<Object> entities) {
     if (entities.size() == 0) return Collections.emptyMap();
     final Set<Long> objectIds = entities.stream().map(reflectionHelper::getPrimaryKey).collect(Collectors.toSet());
     Object entity = entities.get(0);
     if (entity instanceof CrysonLazyInitField) {
+      Map<String, Map<Number, Set<Number>>> map = new HashMap<>();
       CrysonLazyInitField en = (CrysonLazyInitField) entity;
       Map<String, String> queries = en.lazyFieldQueries();
-      for (String query : queries.keySet()) {
-        List<Object> results = crysonRepository.findByNativeQuery(query, objectIds);
-        final Map<Long, Set<Long>> extract = extract(results);
+      for (String field : queries.keySet()) {
+        final List<Object[]> results = crysonRepository.findByNativeQuery(queries.get(field), objectIds);
+        map.put(field, extract(results));
       }
-
+      return map;
     }
     return Collections.emptyMap();
   }
 
-  private Map<Long, Set<Long>> extract(List<Object> results){
-    for (Object result : results) {
-      System.err.println(result);
+  private Map<Number, Set<Number>> extract(List<Object[]> objects) {
+    HashMap<Number, Set<Number>> map = Maps.newHashMap();
+    for (Object[] result : objects) {
+      map.computeIfAbsent((Number) result[0], key -> new HashSet<>()).add((Number) result[1]);
     }
-
-    return Collections.emptyMap();
+    return map;
   }
 
   public Response createEntity(String entityName, String json, ListenerNotificationBatch listenerNotificationBatch) throws Exception {
@@ -249,8 +250,8 @@ public class CrysonService {
       .build();
   }
 
-  private Response serialize(List<Object> entities, Set<String> associationsToFetch, Set<String> associationsToExclude) {
-    String serializedEntities = crysonSerializer.parallelSerialize(entities, associationsToFetch, associationsToExclude);
+  private Response serialize(List<Object> entities, Set<String> associationsToFetch, Map<String, Map<Number, Set<Number>>> lazyFields) {
+    String serializedEntities = crysonSerializer.parallelSerialize(entities, associationsToFetch, lazyFields);
     return Response.ok(serializedEntities)
       .header(CONTENT_LENGTH, countUtf8Bytes(serializedEntities))
       .build();
