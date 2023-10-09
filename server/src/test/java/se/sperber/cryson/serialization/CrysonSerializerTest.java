@@ -98,24 +98,6 @@ public class CrysonSerializerTest {
       assertEquals("{\"id\":1,\"name\":\"test\",\"version\":1,\"crysonEntityClass\":\"CrysonTestEntity\",\"doubleId\":2,\"childEntities\":[{\"id\":100,\"parent\":null,\"crysonEntityClass\":\"CrysonTestChildEntity\"},{\"id\":200,\"crysonEntityClass\":\"CrysonTestChildEntity\",\"crysonUnauthorized\":true}]}", serializedEntity);
     }
 
-//    @Test
-//    public void shouldSerialize1() {
-//      CrysonSerializer serializer = givenCrysonSerializer();
-//      CrysonTestEntity testEntity = new CrysonTestEntity();
-//      testEntity.setId(1L);
-//      testEntity.setVersion(1L);
-//      testEntity.setName("test");
-//
-//      CrysonTestEntity testEntity2 = new CrysonTestEntity();
-//      testEntity2.setId(2L);
-//      testEntity2.setVersion(2L);
-//      testEntity2.setName("test2");
-//
-//      String serializedEntity = serializer.serialize(Arrays.asList(testEntity,testEntity2), Collections.emptySet());
-//
-//      assertEquals("{\"id\":1,\"name\":\"test\",\"version\":1,\"crysonEntityClass\":\"CrysonTestEntity\",\"doubleId\":2,\"childEntities\":[{\"id\":100,\"parent\":null,\"crysonEntityClass\":\"CrysonTestChildEntity\"},{\"id\":200,\"crysonEntityClass\":\"CrysonTestChildEntity\",\"crysonUnauthorized\":true}]}", serializedEntity);
-//    }
-
     @Test
     public void shouldSerializeEagerFetchedToOneUnauthorizedEntity() {
       CrysonSerializer serializer = givenCrysonSerializer();
