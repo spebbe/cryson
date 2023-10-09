@@ -22,10 +22,8 @@ import com.google.common.collect.Sets;
 import com.google.gson.*;
 import org.hibernate.proxy.HibernateProxy;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-import se.sperber.cryson.repository.CrysonRepository;
 import se.sperber.cryson.security.Restrictable;
 
 import javax.annotation.PostConstruct;
@@ -36,7 +34,6 @@ import java.lang.reflect.ParameterizedType;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.regex.Matcher;
-import java.util.stream.Collectors;
 
 @Component
 public class CrysonSerializer {
@@ -46,8 +43,6 @@ public class CrysonSerializer {
   private Gson gsonAllInclusive;
 
   private JsonParser jsonParser;
-
-  private final ExecutorService executorService = ForkJoinPool.commonPool();;
 
   private final Map<Class<?>, Set<Field>> lazyFieldsCache = new ConcurrentHashMap<Class<?>, Set<Field>>();
 
@@ -66,9 +61,6 @@ public class CrysonSerializer {
 
   @Autowired
   private CrysonExcludeExclusionStrategy crysonExcludeExclusionStrategy;
-
-  @Autowired
-  private CrysonRepository crysonRepository;
 
   @PostConstruct
   public void setupGson() {
