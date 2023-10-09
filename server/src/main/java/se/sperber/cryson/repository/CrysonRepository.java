@@ -37,7 +37,6 @@ import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PostFilter;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 import se.sperber.cryson.exception.CrysonValidationFailedException;
 import se.sperber.cryson.security.Restrictable;
 import se.sperber.cryson.serialization.ReflectionHelper;
@@ -150,11 +149,6 @@ public class CrysonRepository {
     }
 
     return query.list();
-  }
-
-  @Transactional(readOnly = true)
-  public <T> T withReadOnlyTransaction(Supplier<T> block) {
-    return block.get();
   }
 
   @PostFilter("hasPermission(filterObject, 'read')")

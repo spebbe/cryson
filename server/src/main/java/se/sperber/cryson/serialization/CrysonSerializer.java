@@ -25,7 +25,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-import se.sperber.cryson.listener.CrysonLazyInitField;
 import se.sperber.cryson.repository.CrysonRepository;
 import se.sperber.cryson.security.Restrictable;
 
@@ -103,18 +102,22 @@ public class CrysonSerializer {
     return serializeTree(serializeToTree(object, associationsToInclude));
   }
 
-  public String parallelSerialize(Collection<Object> object, Set<String> associationsToInclude, Map<String, Map<Number, Set<Number>>> lazyFields) {
-    try {
-      Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-      List<JsonElement> jsonElements = executorService.submit(() -> object.parallelStream()
-          .map(o -> serializeToTree(authentication, o, associationsToInclude, lazyFields))
-          .collect(Collectors.toList())).get();
-      JsonArray jsonArray = new JsonArray();
-      jsonElements.forEach(jsonArray::add);
-      return serializeTree(jsonArray);
-    } catch (InterruptedException | ExecutionException e) {
-      throw new RuntimeException(e);
-    }
+  public String serialize(Collection<Object> objects, Set<String> associationsToInclude,
+                          Set<String> associationsToExclude, Map<String, Map<Long, Set<Long>>> lazyFields) {
+    JsonArray jsonArray = new JsonArray();
+    objects.stream()
+      .map(o -> serializeToTree(o, associationsToInclude, associationsToExclude, lazyFields))
+      .forEach(jsonArray::add);
+    return serializeTree(jsonArray);
+  }
+
+  private JsonElement serializeToTree(Object object,
+                                      Set<String> associationsToInclude,
+                                      Set<String> associationsToExclude,
+                                      Map<String, Map<Long, Set<Long>>> lazyFields) {
+    JsonElement jsonElement = gson.toJsonTree(object);
+    augmentJsonElement(object, jsonElement, associationsToInclude, associationsToExclude, lazyFields);
+    return jsonElement;
   }
 
   public String serialize(Object object) {
@@ -143,23 +146,11 @@ public class CrysonSerializer {
     return augmentEntity(gson.fromJson(jsonElement, classOfT), jsonElement, replacedTemporaryIds);
   }
 
-  private JsonElement serializeToTree(Authentication authentication, Object object, Set<String> associationsToInclude, Map<String, Map<Number, Set<Number>>> lazyFields) {
-    return crysonRepository.withReadOnlyTransaction(() -> {
-      final Authentication currentAuth = SecurityContextHolder.getContext().getAuthentication();
-      SecurityContextHolder.getContext().setAuthentication(authentication);
-      Optional.ofNullable(authentication.getDetails()).ifPresent(details -> crysonRepository.findById(getEntityClassName(details), reflectionHelper.getPrimaryKey(details), Collections.emptySet()));
-      Object refreshed = crysonRepository.findById(getEntityClassName(object), reflectionHelper.getPrimaryKey(object), associationsToInclude);
-      JsonElement jsonElement = gson.toJsonTree(refreshed);
-      augmentJsonElement(refreshed, jsonElement, associationsToInclude, lazyFields);
-      SecurityContextHolder.getContext().setAuthentication(currentAuth);
-      return jsonElement;
-    });
-  }
   private void augmentJsonElement(Object rawObject, JsonElement jsonElement, Set<String> associationsToInclude){
-    augmentJsonElement(rawObject, jsonElement, associationsToInclude, Collections.emptyMap());
+    augmentJsonElement(rawObject, jsonElement, associationsToInclude, Collections.emptySet(), Collections.emptyMap());
   }
 
-  private void augmentJsonElement(Object rawObject, JsonElement jsonElement, Set<String> associationsToInclude, Map<String, Map<Number, Set<Number>>> lazyFields) {
+  private void augmentJsonElement(Object rawObject, JsonElement jsonElement, Set<String> associationsToInclude, Set<String> associationsToExclude, Map<String, Map<Long, Set<Long>>> lazyFields) {
     Object object = HibernateProxyTypeAdapter.initializeAndUnproxy(rawObject);
     try {
       if (object instanceof Collection) {
@@ -167,7 +158,7 @@ public class CrysonSerializer {
         JsonArray jsonArray = jsonElement.getAsJsonArray();
         for (Object subObject : (Collection) object) {
           JsonElement subJsonElement = jsonArray.get(ix++);
-          augmentJsonElement(subObject, subJsonElement, associationsToInclude, Collections.emptyMap());
+          augmentJsonElement(subObject, subJsonElement, associationsToInclude, associationsToExclude, lazyFields);
         }
       } else {
         jsonElement.getAsJsonObject().add("crysonEntityClass", new JsonPrimitive(object.getClass().getSimpleName()));
@@ -183,7 +174,7 @@ public class CrysonSerializer {
           if (member.getValue().isJsonObject() || member.getValue().isJsonArray()) {
             Field field = reflectionHelper.getField(object, member.getKey());
             field.setAccessible(true);
-            augmentJsonElement(field.get(object), member.getValue(), subAssociationsToInclude(associationsToInclude, member.getKey()), Collections.emptyMap());
+            augmentJsonElement(field.get(object), member.getValue(), subAssociations(associationsToInclude, member.getKey()), subAssociations(associationsToExclude, member.getKey()), Collections.emptyMap());
           }
         }
 
@@ -198,36 +189,39 @@ public class CrysonSerializer {
 
         Set<Method> transientGetters = reflectionHelper.getAllDeclaredVirtualAttributeGetters(object.getClass());
         for (Method method : transientGetters) {
+          String name = reflectionHelper.getAttributeNameFromGetterName(method.getName());
+          if(associationsToExclude.contains(name))continue;
           Object methodValue = method.invoke(object);
           JsonElement jsonFieldValue = gsonAllInclusive.toJsonTree(methodValue);
-          jsonElement.getAsJsonObject().add(reflectionHelper.getAttributeNameFromGetterName(method.getName()), jsonFieldValue);
+          jsonElement.getAsJsonObject().add(name, jsonFieldValue);
         }
 
         Set<Field> fields = getLazyFields(object.getClass());
         for (Field field : fields) {
-          if (associationsToInclude.contains(field.getName())) {
+          String fieldName = field.getName();
+          if(associationsToExclude.contains(fieldName))continue;
+          if (associationsToInclude.contains(fieldName)) {
             Object fieldValue = field.get(object);
             if (fieldValue != null) {
               JsonElement fieldValueJsonElement = gson.toJsonTree(fieldValue);
-              augmentJsonElement(fieldValue, fieldValueJsonElement, subAssociationsToInclude(associationsToInclude, field.getName()), Collections.emptyMap());
-              jsonElement.getAsJsonObject().add(field.getName(), fieldValueJsonElement);
+              augmentJsonElement(fieldValue, fieldValueJsonElement, subAssociations(associationsToInclude, fieldName), subAssociations(associationsToExclude, fieldName),Collections.emptyMap());
+              jsonElement.getAsJsonObject().add(fieldName, fieldValueJsonElement);
             }
-          } else if (lazyFields.containsKey(field.getName())) {
-            Set<Number> fieldValue = lazyFields.get(field.getName()).get(reflectionHelper.getPrimaryKey(rawObject));
-            if (fieldValue != null) {
-              if (Collection.class.isAssignableFrom(field.getType())) {
-                JsonArray primaryKeyArray = new JsonArray();
-                for (Number subElement : fieldValue) {
-                  primaryKeyArray.add(new JsonPrimitive(subElement));
-                }
-                jsonElement.getAsJsonObject().add(field.getName() + "_cryson_ids", primaryKeyArray);
-              } else {
-                for (Number subElement : fieldValue) {
-                  jsonElement.getAsJsonObject().addProperty(field.getName() + "_cryson_id", subElement);
-                }
+          } else if (lazyFields.containsKey(fieldName)) {
+            Set<Long> fieldValue = lazyFields.get(fieldName).get(reflectionHelper.getPrimaryKey(rawObject));
+            if (Collection.class.isAssignableFrom(field.getType())) {
+              JsonArray primaryKeyArray = new JsonArray();
+              if (fieldValue != null) {
+                fieldValue.stream().map(JsonPrimitive::new).forEach(primaryKeyArray::add);
               }
+              jsonElement.getAsJsonObject().add(fieldName + "_cryson_ids", primaryKeyArray);
             } else {
-              jsonElement.getAsJsonObject().add(field.getName() + "_cryson_id", JsonNull.INSTANCE);
+              if (fieldValue != null) {
+                fieldValue.stream().findFirst()
+                  .ifPresent(key -> jsonElement.getAsJsonObject().addProperty(fieldName + "_cryson_id", key));
+              } else {
+                jsonElement.getAsJsonObject().add(fieldName + "_cryson_id", JsonNull.INSTANCE);
+              }
             }
           } else {
             Object fieldValue = field.get(object);
@@ -237,12 +231,12 @@ public class CrysonSerializer {
                 for (Object subElement : (Collection) fieldValue) {
                   primaryKeyArray.add(new JsonPrimitive(reflectionHelper.getPrimaryKey(subElement)));
                 }
-                jsonElement.getAsJsonObject().add(field.getName() + "_cryson_ids", primaryKeyArray);
+                jsonElement.getAsJsonObject().add(fieldName + "_cryson_ids", primaryKeyArray);
               } else {
-                jsonElement.getAsJsonObject().addProperty(field.getName() + "_cryson_id", reflectionHelper.getPrimaryKey(fieldValue));
+                jsonElement.getAsJsonObject().addProperty(fieldName + "_cryson_id", reflectionHelper.getPrimaryKey(fieldValue));
               }
             } else {
-              jsonElement.getAsJsonObject().add(field.getName() + "_cryson_id", JsonNull.INSTANCE);
+              jsonElement.getAsJsonObject().add(fieldName + "_cryson_id", JsonNull.INSTANCE);
             }
           }
         }
@@ -261,7 +255,7 @@ public class CrysonSerializer {
     jsonObject.addProperty("crysonUnauthorized", true);
   }
 
-  private Set<String> subAssociationsToInclude(Set<String> associationsToInclude, String association) {
+  private Set<String> subAssociations(Set<String> associationsToInclude, String association) {
     if (associationsToInclude.size() == 0) {
       return associationsToInclude;
     }
@@ -269,21 +263,6 @@ public class CrysonSerializer {
     Set<String> subAssociations = new HashSet<String>();
     String subAssociationPrefix = association + ".";
     for(String associationToInclude : associationsToInclude) {
-      if (associationToInclude.startsWith(subAssociationPrefix)) {
-        subAssociations.add(associationToInclude.replaceFirst(Matcher.quoteReplacement(subAssociationPrefix), ""));
-      }
-    }
-    return subAssociations;
-  }
-
-  private Set<String> subAssociationsToExclude(Set<String> associationsToExclude, String association) {
-    if (associationsToExclude.size() == 0) {
-      return associationsToExclude;
-    }
-
-    Set<String> subAssociations = new HashSet<String>();
-    String subAssociationPrefix = association + ".";
-    for(String associationToInclude : associationsToExclude) {
       if (associationToInclude.startsWith(subAssociationPrefix)) {
         subAssociations.add(associationToInclude.replaceFirst(Matcher.quoteReplacement(subAssociationPrefix), ""));
       }
