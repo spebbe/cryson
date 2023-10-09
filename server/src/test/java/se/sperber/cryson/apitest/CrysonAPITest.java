@@ -39,7 +39,6 @@ import se.sperber.cryson.testutil.CrysonTestChildEntity;
 import se.sperber.cryson.testutil.CrysonTestEntity;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Collections;
 
