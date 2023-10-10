@@ -29,6 +29,7 @@ import se.sperber.cryson.security.Restrictable;
 import javax.annotation.PostConstruct;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
@@ -95,10 +96,10 @@ public class CrysonSerializer {
   }
 
   public String serialize(Collection<Object> objects, Set<String> associationsToInclude,
-                          Set<String> associationsToExclude, Map<String, Map<Long, Set<Long>>> lazyFields) {
+                          Set<String> associationsToExclude, Map<String, Map<Long, Set<Long>>> lazyFieldsValues) {
     JsonArray jsonArray = new JsonArray();
     objects.stream()
-      .map(o -> serializeToTree(o, associationsToInclude, associationsToExclude, lazyFields))
+      .map(o -> serializeToTree(o, associationsToInclude, associationsToExclude, lazyFieldsValues))
       .forEach(jsonArray::add);
     return serializeTree(jsonArray);
   }
@@ -106,9 +107,9 @@ public class CrysonSerializer {
   private JsonElement serializeToTree(Object object,
                                       Set<String> associationsToInclude,
                                       Set<String> associationsToExclude,
-                                      Map<String, Map<Long, Set<Long>>> lazyFields) {
+                                      Map<String, Map<Long, Set<Long>>> lazyFieldsValues) {
     JsonElement jsonElement = gson.toJsonTree(object);
-    augmentJsonElement(object, jsonElement, associationsToInclude, associationsToExclude, lazyFields);
+    augmentJsonElement(object, jsonElement, associationsToInclude, associationsToExclude, lazyFieldsValues);
     return jsonElement;
   }
 
@@ -142,7 +143,7 @@ public class CrysonSerializer {
     augmentJsonElement(rawObject, jsonElement, associationsToInclude, Collections.emptySet(), Collections.emptyMap());
   }
 
-  private void augmentJsonElement(Object rawObject, JsonElement jsonElement, Set<String> associationsToInclude, Set<String> associationsToExclude, Map<String, Map<Long, Set<Long>>> lazyFields) {
+  private void augmentJsonElement(Object rawObject, JsonElement jsonElement, Set<String> associationsToInclude, Set<String> associationsToExclude, Map<String, Map<Long, Set<Long>>> lazyFieldsValues) {
     Object object = HibernateProxyTypeAdapter.initializeAndUnproxy(rawObject);
     try {
       if (object instanceof Collection) {
@@ -150,7 +151,7 @@ public class CrysonSerializer {
         JsonArray jsonArray = jsonElement.getAsJsonArray();
         for (Object subObject : (Collection) object) {
           JsonElement subJsonElement = jsonArray.get(ix++);
-          augmentJsonElement(subObject, subJsonElement, associationsToInclude, associationsToExclude, lazyFields);
+          augmentJsonElement(subObject, subJsonElement, associationsToInclude, associationsToExclude, lazyFieldsValues);
         }
       } else {
         jsonElement.getAsJsonObject().add("crysonEntityClass", new JsonPrimitive(object.getClass().getSimpleName()));
@@ -170,71 +171,106 @@ public class CrysonSerializer {
           }
         }
 
-        Set<Field> userTypeFields = getUserTypeFields(object.getClass());
-        for (Field field : userTypeFields) {
-          Object fieldValue = field.get(object);
-          if (fieldValue != null && Map.class.isAssignableFrom(field.getType())) {
-            JsonElement jsonFieldValue = gsonAllInclusive.toJsonTree(fieldValue);
-            jsonElement.getAsJsonObject().add(field.getName() + "_cryson_usertype", jsonFieldValue);
-          }
-        }
-
-        Set<Method> transientGetters = reflectionHelper.getAllDeclaredVirtualAttributeGetters(object.getClass());
-        for (Method method : transientGetters) {
-          String name = reflectionHelper.getAttributeNameFromGetterName(method.getName());
-          if(associationsToExclude.contains(name))continue;
-          Object methodValue = method.invoke(object);
-          JsonElement jsonFieldValue = gsonAllInclusive.toJsonTree(methodValue);
-          jsonElement.getAsJsonObject().add(name, jsonFieldValue);
-        }
-
-        Set<Field> fields = getLazyFields(object.getClass());
-        for (Field field : fields) {
-          String fieldName = field.getName();
-          if(associationsToExclude.contains(fieldName))continue;
-          if (associationsToInclude.contains(fieldName)) {
-            Object fieldValue = field.get(object);
-            if (fieldValue != null) {
-              JsonElement fieldValueJsonElement = gson.toJsonTree(fieldValue);
-              augmentJsonElement(fieldValue, fieldValueJsonElement, subAssociations(associationsToInclude, fieldName), subAssociations(associationsToExclude, fieldName),Collections.emptyMap());
-              jsonElement.getAsJsonObject().add(fieldName, fieldValueJsonElement);
-            }
-          } else if (lazyFields.containsKey(fieldName)) {
-            Set<Long> fieldValue = lazyFields.get(fieldName).get(reflectionHelper.getPrimaryKey(rawObject));
-            if (Collection.class.isAssignableFrom(field.getType())) {
-              JsonArray primaryKeyArray = new JsonArray();
-              if (fieldValue != null) {
-                fieldValue.stream().map(JsonPrimitive::new).forEach(primaryKeyArray::add);
-              }
-              jsonElement.getAsJsonObject().add(fieldName + "_cryson_ids", primaryKeyArray);
-            } else {
-              if (fieldValue != null) {
-                fieldValue.stream().findFirst()
-                  .ifPresent(key -> jsonElement.getAsJsonObject().addProperty(fieldName + "_cryson_id", key));
-              } else {
-                jsonElement.getAsJsonObject().add(fieldName + "_cryson_id", JsonNull.INSTANCE);
-              }
-            }
-          } else {
-            Object fieldValue = field.get(object);
-            if (fieldValue != null) {
-              if (fieldValue instanceof Collection) {
-                JsonArray primaryKeyArray = new JsonArray();
-                for (Object subElement : (Collection) fieldValue) {
-                  primaryKeyArray.add(new JsonPrimitive(reflectionHelper.getPrimaryKey(subElement)));
-                }
-                jsonElement.getAsJsonObject().add(fieldName + "_cryson_ids", primaryKeyArray);
-              } else {
-                jsonElement.getAsJsonObject().addProperty(fieldName + "_cryson_id", reflectionHelper.getPrimaryKey(fieldValue));
-              }
-            } else {
-              jsonElement.getAsJsonObject().add(fieldName + "_cryson_id", JsonNull.INSTANCE);
-            }
-          }
-        }
+        augmentJsonElementWithUserTypeFields(rawObject, jsonElement);
+        augmentJsonElementWithTransientGetters(rawObject, jsonElement, associationsToExclude);
+        augmentJsonElementWithLazyFields(rawObject, jsonElement, associationsToInclude, associationsToExclude, lazyFieldsValues);
       }
     } catch (Throwable t) {
       throw new RuntimeException(t);
+    }
+  }
+
+  private void augmentJsonElementWithUserTypeFields(Object object, JsonElement jsonElement)
+    throws IllegalAccessException {
+    Set<Field> userTypeFields = getUserTypeFields(object.getClass());
+    for (Field field : userTypeFields) {
+      Object fieldValue = field.get(object);
+      if (fieldValue != null && Map.class.isAssignableFrom(field.getType())) {
+        JsonElement jsonFieldValue = gsonAllInclusive.toJsonTree(fieldValue);
+        jsonElement.getAsJsonObject().add(field.getName() + "_cryson_usertype", jsonFieldValue);
+      }
+    }
+  }
+
+  private void augmentJsonElementWithTransientGetters(Object object, JsonElement jsonElement,
+                                                      Set<String> associationsToExclude)
+    throws InvocationTargetException, IllegalAccessException {
+    Set<Method> transientGetters = reflectionHelper.getAllDeclaredVirtualAttributeGetters(object.getClass());
+    for (Method method : transientGetters) {
+      String name = reflectionHelper.getAttributeNameFromGetterName(method.getName());
+      if (associationsToExclude.contains(name)) continue;
+      Object methodValue = method.invoke(object);
+      JsonElement jsonFieldValue = gsonAllInclusive.toJsonTree(methodValue);
+      jsonElement.getAsJsonObject().add(name, jsonFieldValue);
+    }
+  }
+
+  private void augmentJsonElementWithLazyFields(Object object, JsonElement jsonElement,
+                                                Set<String> associationsToInclude,
+                                                Set<String> associationsToExclude,
+                                                Map<String, Map<Long, Set<Long>>> lazyFieldsValues) throws IllegalAccessException {
+    Set<Field> fields = getLazyFields(object.getClass());
+    for (Field field : fields) {
+      String fieldName = field.getName();
+      if (associationsToExclude.contains(fieldName)) continue;
+      if (associationsToInclude.contains(fieldName)) {
+        augmentJsonElementWithEagerLoadedLazyField(object, jsonElement, field, associationsToInclude, associationsToExclude);
+      } else if (lazyFieldsValues.containsKey(fieldName)) {
+        augmentJsonElementWithLazyCollectionField(object, jsonElement, field, lazyFieldsValues);
+      } else {
+        augmentJsonElement(object, jsonElement, field);
+      }
+    }
+  }
+
+
+  private void augmentJsonElementWithEagerLoadedLazyField(Object object, JsonElement jsonElement, Field field,
+                                                          Set<String> associationsToInclude,
+                                                          Set<String> associationsToExclude) throws IllegalAccessException {
+    String fieldName = field.getName();
+    Object fieldValue = field.get(object);
+    if (fieldValue != null) {
+      JsonElement fieldValueJsonElement = gson.toJsonTree(fieldValue);
+      augmentJsonElement(fieldValue, fieldValueJsonElement, subAssociations(associationsToInclude, fieldName), subAssociations(associationsToExclude, fieldName), Collections.emptyMap());
+      jsonElement.getAsJsonObject().add(fieldName, fieldValueJsonElement);
+    }
+  }
+
+  private void augmentJsonElementWithLazyCollectionField(Object object, JsonElement jsonElement, Field field,
+                                                         Map<String, Map<Long, Set<Long>>> lazyFieldsValues) {
+    String fieldName = field.getName();
+    Set<Long> fieldValue = lazyFieldsValues.get(fieldName).get(reflectionHelper.getPrimaryKey(object));
+    if (Collection.class.isAssignableFrom(field.getType())) {
+      JsonArray primaryKeyArray = new JsonArray();
+      if (fieldValue != null) {
+        fieldValue.stream().map(JsonPrimitive::new).forEach(primaryKeyArray::add);
+      }
+      jsonElement.getAsJsonObject().add(fieldName + "_cryson_ids", primaryKeyArray);
+    } else {
+      if (fieldValue != null) {
+        fieldValue.stream().findFirst()
+          .ifPresent(key -> jsonElement.getAsJsonObject().addProperty(fieldName + "_cryson_id", key));
+      } else {
+        jsonElement.getAsJsonObject().add(fieldName + "_cryson_id", JsonNull.INSTANCE);
+      }
+    }
+  }
+
+  private void augmentJsonElement(Object object, JsonElement jsonElement, Field field) throws IllegalAccessException {
+    String fieldName = field.getName();
+    Object fieldValue = field.get(object);
+    if (fieldValue != null) {
+      if (fieldValue instanceof Collection) {
+        JsonArray primaryKeyArray = new JsonArray();
+        for (Object subElement : (Collection) fieldValue) {
+          primaryKeyArray.add(new JsonPrimitive(reflectionHelper.getPrimaryKey(subElement)));
+        }
+        jsonElement.getAsJsonObject().add(fieldName + "_cryson_ids", primaryKeyArray);
+      } else {
+        jsonElement.getAsJsonObject().addProperty(fieldName + "_cryson_id", reflectionHelper.getPrimaryKey(fieldValue));
+      }
+    } else {
+      jsonElement.getAsJsonObject().add(fieldName + "_cryson_id", JsonNull.INSTANCE);
     }
   }
 
