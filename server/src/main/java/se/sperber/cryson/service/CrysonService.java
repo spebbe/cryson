@@ -161,8 +161,8 @@ public class CrysonService {
   public Response getEntitiesByIds(final String entityName, List<Long> ids, Set<String> associationsToFetch,
                                    Set<String> associationsToExclude) {
     final List<Object> entities = crysonRepository.findByIds(qualifiedEntityClassName(entityName), ids, associationsToFetch);
-    final Map<String, Map<Long, Set<Long>>> lazyFields = loadLazyCollectionFields(entities);
-    return serialize(entities, associationsToFetch, associationsToExclude, lazyFields);
+    final Map<String, Map<Long, Set<Long>>> lazyFieldsValues = loadLazyCollectionFields(entities);
+    return serialize(entities, associationsToFetch, associationsToExclude, lazyFieldsValues);
   }
 
   public Response getEntitiesByExample(String entityName, String exampleJson,
@@ -170,28 +170,28 @@ public class CrysonService {
     Class entityClass = entityClass(entityName);
     Object exampleEntity = crysonSerializer.deserialize(exampleJson, entityClass, null);
     List<Object> entities = crysonRepository.findByExample(qualifiedEntityClassName(entityName), exampleEntity, associationsToFetch);
-    Map<String, Map<Long, Set<Long>>> lazyFields = loadLazyCollectionFields(entities);
-    return serialize(entities, associationsToFetch, associationsToExclude, lazyFields);
+    Map<String, Map<Long, Set<Long>>> lazyFieldsValues = loadLazyCollectionFields(entities);
+    return serialize(entities, associationsToFetch, associationsToExclude, lazyFieldsValues);
   }
 
   public Response getAllEntities(String entityName, Set<String> associationsToFetch, Set<String> associationsToExclude) {
     List<Object> entities = crysonRepository.findAll(qualifiedEntityClassName(entityName), associationsToFetch);
-    Map<String, Map<Long, Set<Long>>> lazyFields = loadLazyCollectionFields(entities);
-    return serialize(entities, associationsToFetch, associationsToExclude, lazyFields);
+    Map<String, Map<Long, Set<Long>>> lazyFieldsValues = loadLazyCollectionFields(entities);
+    return serialize(entities, associationsToFetch, associationsToExclude, lazyFieldsValues);
   }
 
   public Response getEntitiesByNamedQuery(String queryName, MultivaluedMap<String, String> queryParameters,
                                           Set<String> associationsToFetch, Set<String> associationsToExclude) {
     List<Object> entities = crysonRepository.findByNamedQuery(queryName, queryParameters);
-    Map<String, Map<Long, Set<Long>>> lazyFields = loadLazyCollectionFields(entities);
-    return serialize(entities, associationsToFetch, associationsToExclude, lazyFields);
+    Map<String, Map<Long, Set<Long>>> lazyFieldsValues = loadLazyCollectionFields(entities);
+    return serialize(entities, associationsToFetch, associationsToExclude, lazyFieldsValues);
   }
 
   public Response getEntitiesByNamedQueryJson(String queryName, Set<String> associationsToFetch,
                                               Set<String> associationsToExclude, JsonElement parameters) {
     List<Object> entities = crysonRepository.findByNamedQueryJson(queryName, parameters);
-    Map<String, Map<Long, Set<Long>>> lazyFields = loadLazyCollectionFields(entities);
-    return serialize(entities, associationsToFetch, associationsToExclude, lazyFields);
+    Map<String, Map<Long, Set<Long>>> lazyFieldsValues = loadLazyCollectionFields(entities);
+    return serialize(entities, associationsToFetch, associationsToExclude, lazyFieldsValues);
   }
 
   private Map<String, Map<Long, Set<Long>>> loadLazyCollectionFields(List<Object> entities) {
@@ -243,8 +243,8 @@ public class CrysonService {
   }
 
   private Response serialize(List<Object> entities, Set<String> associationsToFetch,Set<String> associationsToExclude,
-                             Map<String, Map<Long, Set<Long>>> lazyFields) {
-    String serializedEntities = crysonSerializer.serialize(entities, associationsToFetch, associationsToExclude, lazyFields);
+                             Map<String, Map<Long, Set<Long>>> lazyFieldsValues) {
+    String serializedEntities = crysonSerializer.serialize(entities, associationsToFetch, associationsToExclude, lazyFieldsValues);
     return Response.ok(serializedEntities)
       .header(CONTENT_LENGTH, countUtf8Bytes(serializedEntities))
       .build();
