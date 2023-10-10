@@ -31,15 +31,16 @@ import org.apache.commons.httpclient.methods.PutMethod;
 import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import se.sperber.cryson.CrysonServer;
 import se.sperber.cryson.initialization.Application;
 import se.sperber.cryson.serialization.CrysonSerializer;
+import se.sperber.cryson.testutil.CrysonTestChildEntity;
 import se.sperber.cryson.testutil.CrysonTestEntity;
 
+import java.io.IOException;
 import java.net.URLEncoder;
+import java.util.Collections;
 
 import static org.junit.Assert.*;
 
@@ -76,6 +77,35 @@ public class CrysonAPITest {
     session.createSQLQuery("DELETE FROM CrysonTestEntity").executeUpdate();
     session.getTransaction().commit();
     session.close();
+  }
+
+  @Before
+  public void createEntities() throws IOException {
+    String serializedEntity = "{\"id\":null, \"name\":\"created\", \"childEntities_cryson_ids\":[100]}";
+    PutMethod entityPutMethod = new PutMethod("http://localhost:8789/cryson/CrysonTestEntity");
+    entityPutMethod.setRequestEntity(new StringRequestEntity(serializedEntity, "application/json", "UTF-8"));
+    httpClient.executeMethod(entityPutMethod);
+
+    CrysonTestEntity testEntity = crysonSerializer.deserialize(entityPutMethod.getResponseBodyAsString(), CrysonTestEntity.class, null);
+    String serializedChildEntity = "{\"id\":null,\"parent_cryson_id\":" + testEntity.getId() + "}";
+    PutMethod childEntityPutMethod = new PutMethod("http://localhost:8789/cryson/CrysonTestChildEntity");
+    childEntityPutMethod.setRequestEntity(new StringRequestEntity(serializedChildEntity, "application/json", "UTF-8"));
+    httpClient.executeMethod(childEntityPutMethod);
+    CrysonTestChildEntity testChildEntity= crysonSerializer.deserialize(childEntityPutMethod.getResponseBodyAsString(), CrysonTestChildEntity.class, null);
+    testEntity.setChildEntities(Collections.singleton(testChildEntity));
+
+    GetMethod getMethod = new GetMethod("http://localhost:8789/cryson/CrysonTestEntity/all");
+    int status = httpClient.executeMethod(getMethod);
+    assertEquals(HttpStatus.SC_OK, status);
+
+    JsonElement jsonElement = crysonSerializer.parse(getMethod.getResponseBodyAsString());
+    assertEquals(1, jsonElement.getAsJsonArray().size());
+    foundEntity = crysonSerializer.deserialize(jsonElement.getAsJsonArray().get(0), CrysonTestEntity.class, null);
+  }
+
+  @After
+  public void cleanEntities(){
+    cleanDatabase();
   }
 
   @AfterClass
@@ -243,12 +273,10 @@ public class CrysonAPITest {
     assertEquals(HttpStatus.SC_OK, httpClient.executeMethod(postMethod));
     assertEquals("{\"replacedTemporaryIds\":{},\"persistedEntities\":[],\"updatedEntities\":[{\"id\":" + entityId + ",\"name\":\"updated\",\"version\":1,\"crysonEntityClass\":\"CrysonTestEntity\",\"doubleId\":" + (entityId*2) + ",\"childEntities_cryson_ids\":[]}]}", postMethod.getResponseBodyAsString());
   }
-
   @Test
   public void shouldNotCommitStaleEntities() throws Exception {
     Long entityId = foundEntity.getId();
-    Long childEntityId = foundEntity.getChildEntities().iterator().next().getId();
-    String commitJson = "{\"updatedEntities\":[{\"crysonEntityClass\":\"CrysonTestEntity\",\"id\":" + entityId + ",\"name\":\"will not update\",\"childEntities_cryson_ids\":[]}], \"deletedEntities\":[], \"persistedEntities\":[]}";
+    String commitJson = "{\"updatedEntities\":[{\"crysonEntityClass\":\"CrysonTestEntity\",\"id\":" + entityId + ",\"name\":\"will not update\",\"version\":1,\"childEntities_cryson_ids\":[]}], \"deletedEntities\":[], \"persistedEntities\":[]}";
 
     PostMethod postMethod = new PostMethod("http://localhost:8789/cryson/commit");
     postMethod.setRequestEntity(new StringRequestEntity(commitJson, "application/json", "UTF-8"));
