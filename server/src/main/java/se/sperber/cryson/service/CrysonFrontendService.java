@@ -246,6 +246,17 @@ public class CrysonFrontendService {
     }
   }
 
+  public Response commitEntity(Object entity, UriInfo uriInfo, HttpHeaders httpHeaders) {
+    try {
+      ListenerNotificationBatch listenerNotificationBatch = new ListenerNotificationBatch(uriInfo, httpHeaders);
+      Response response = crysonService.commitEntity(entity, listenerNotificationBatch);
+      notifyCommit(listenerNotificationBatch);
+      return response;
+    } catch(Throwable t) {
+      return translateThrowable(t);
+    }
+  }
+
   private void notifyCommit(ListenerNotificationBatch listenerNotificationBatch) {
     for (CrysonListener crysonListener : crysonListeners) {
       try {
