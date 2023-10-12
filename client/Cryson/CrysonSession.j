@@ -432,9 +432,11 @@ By passing an array of key paths (e.g ["children", "children.toys"]) as the 'ass
 
 By passing an array of key paths (e.g ["children", "children.toys"]) as the 'associationsToFetch' argument, it is possible to force eager fetching of associations that would otherwise have been lazily fetched.
 */
-- (void)findByNamedQuery:(CPString)queryName withParameters:(CPDictionary)parameters fetch:(CPArray)associationsToFetch delegate:(id)aDelegate
+- (void)findByNamedQuery:(CPString)queryName withParameters:(CPDictionary)parameters fetch:(CPArray)associationsToFetch exclude:(CPArray)associationsToExclude delegate:(id)aDelegate
 {
-  var url = baseUrl + "/namedQuery/" + queryName + "/?fetch=" + [self _associationNamesToFetchString:associationsToFetch],
+  var url = baseUrl + "/namedQuery/" + queryName + "/?fetch="
+    + [self _associationNamesToString:associationsToFetch] + "&exclude="
+      + [self _associationNamesToString:associationsToExclude],
       context = [CrysonSessionContext contextWithDelegate:aDelegate],
       keys = [parameters allKeys],
       object = {};
@@ -668,8 +670,13 @@ If the commit failed, the following delegate method is instead called:
 
 - (CPString)_associationNamesToFetchString:(CPString)associationsToFetch
 {
-  if (associationsToFetch) {
-    return [associationsToFetch componentsJoinedByString:","];
+  return [self _associationNamesToString:associationsToFetch]
+}
+
+- (CPString)_associationNamesToString:(CPString)associations
+{
+  if (associations) {
+    return [associations componentsJoinedByString:","];
   }
   return "";
 }

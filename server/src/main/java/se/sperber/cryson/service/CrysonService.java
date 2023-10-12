@@ -18,10 +18,7 @@
 
 package se.sperber.cryson.service;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -33,30 +30,26 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import se.sperber.cryson.exception.CrysonEntityNotFoundException;
+import se.sperber.cryson.lazy.LazyCollectionSupport;
 import se.sperber.cryson.listener.ListenerNotificationBatch;
 import se.sperber.cryson.repository.CrysonRepository;
 import se.sperber.cryson.security.Restrictable;
 import se.sperber.cryson.serialization.CrysonSerializer;
 import se.sperber.cryson.serialization.ReflectionHelper;
-import se.sperber.cryson.serialization.UnauthorizedEntity;
-import se.sperber.cryson.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 import javax.persistence.Entity;
-import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.stream.Collectors;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static javax.ws.rs.core.HttpHeaders.CONTENT_LENGTH;
 import static se.sperber.cryson.util.StringUtils.countUtf8Bytes;
 
@@ -165,31 +158,65 @@ public class CrysonService {
     }
   }
 
-  public Response getEntitiesByIds(final String entityName, List<Long> ids, Set<String> associationsToFetch) {
+  public Response getEntitiesByIds(final String entityName, List<Long> ids, Set<String> associationsToFetch,
+                                   Set<String> associationsToExclude) {
     final List<Object> entities = crysonRepository.findByIds(qualifiedEntityClassName(entityName), ids, associationsToFetch);
-    return serialize(entities, associationsToFetch);
+    final Map<String, Map<Long, Set<Long>>> lazyFieldsValues = loadLazyCollectionFields(entities);
+    return serialize(entities, associationsToFetch, associationsToExclude, lazyFieldsValues);
   }
 
-  public Response getEntitiesByExample(String entityName, String exampleJson, Set<String> associationsToFetch) throws Exception {
+  public Response getEntitiesByExample(String entityName, String exampleJson,
+                                       Set<String> associationsToFetch, Set<String> associationsToExclude) throws Exception {
     Class entityClass = entityClass(entityName);
     Object exampleEntity = crysonSerializer.deserialize(exampleJson, entityClass, null);
     List<Object> entities = crysonRepository.findByExample(qualifiedEntityClassName(entityName), exampleEntity, associationsToFetch);
-    return serialize(entities, associationsToFetch);
+    Map<String, Map<Long, Set<Long>>> lazyFieldsValues = loadLazyCollectionFields(entities);
+    return serialize(entities, associationsToFetch, associationsToExclude, lazyFieldsValues);
   }
 
-  public Response getAllEntities(String entityName, Set<String> associationsToFetch) {
+  public Response getAllEntities(String entityName, Set<String> associationsToFetch, Set<String> associationsToExclude) {
     List<Object> entities = crysonRepository.findAll(qualifiedEntityClassName(entityName), associationsToFetch);
-    return serialize(entities, associationsToFetch);
+    Map<String, Map<Long, Set<Long>>> lazyFieldsValues = loadLazyCollectionFields(entities);
+    return serialize(entities, associationsToFetch, associationsToExclude, lazyFieldsValues);
   }
 
-  public Response getEntitiesByNamedQuery(String queryName, MultivaluedMap<String, String> queryParameters, Set<String> associationsToFetch) {
+  public Response getEntitiesByNamedQuery(String queryName, MultivaluedMap<String, String> queryParameters,
+                                          Set<String> associationsToFetch, Set<String> associationsToExclude) {
     List<Object> entities = crysonRepository.findByNamedQuery(queryName, queryParameters);
-    return serialize(entities, associationsToFetch);
+    Map<String, Map<Long, Set<Long>>> lazyFieldsValues = loadLazyCollectionFields(entities);
+    return serialize(entities, associationsToFetch, associationsToExclude, lazyFieldsValues);
   }
 
-  public Response getEntitiesByNamedQueryJson(String queryName, Set<String> associationsToFetch, JsonElement parameters) {
+  public Response getEntitiesByNamedQueryJson(String queryName, Set<String> associationsToFetch,
+                                              Set<String> associationsToExclude, JsonElement parameters) {
     List<Object> entities = crysonRepository.findByNamedQueryJson(queryName, parameters);
-    return serialize(entities, associationsToFetch);
+    Map<String, Map<Long, Set<Long>>> lazyFieldsValues = loadLazyCollectionFields(entities);
+    return serialize(entities, associationsToFetch, associationsToExclude, lazyFieldsValues);
+  }
+
+  private Map<String, Map<Long, Set<Long>>> loadLazyCollectionFields(List<Object> entities) {
+    if (entities.size() == 0) return Collections.emptyMap();
+    final Set<Long> objectIds = entities.stream().map(reflectionHelper::getPrimaryKey).collect(Collectors.toSet());
+    Object entity = entities.get(0);
+    if (entity instanceof LazyCollectionSupport) {
+      Map<String, Map<Long, Set<Long>>> map = new HashMap<>();
+      Map<String, String> queries = ((LazyCollectionSupport) entity).lazyCollectionFieldQueries();
+      for (String field : queries.keySet()) {
+        if (Strings.isNullOrEmpty(field)) continue;
+        List<Object[]> results = crysonRepository.findByNativeQuery(queries.get(field), objectIds);
+        map.put(field, extractAssociationIds(results));
+      }
+      return map;
+    }
+    return Collections.emptyMap();
+  }
+
+  private Map<Long, Set<Long>> extractAssociationIds(List<Object[]> objects) {
+    HashMap<Long, Set<Long>> map = Maps.newHashMap();
+    for (Object[] result : objects) {
+      map.computeIfAbsent(((Number) result[0]).longValue(), key -> new HashSet<>()).add(((Number) result[1]).longValue());
+    }
+    return map;
   }
 
   public Response createEntity(String entityName, String json, ListenerNotificationBatch listenerNotificationBatch) throws Exception {
@@ -215,13 +242,13 @@ public class CrysonService {
       .build();
   }
 
-  private Response serialize(List<Object> entities, Set<String> associationsToFetch) {
-    String serializedEntities = crysonSerializer.serialize(entities, associationsToFetch);
+  private Response serialize(List<Object> entities, Set<String> associationsToFetch,Set<String> associationsToExclude,
+                             Map<String, Map<Long, Set<Long>>> lazyFieldsValues) {
+    String serializedEntities = crysonSerializer.serialize(entities, associationsToFetch, associationsToExclude, lazyFieldsValues);
     return Response.ok(serializedEntities)
       .header(CONTENT_LENGTH, countUtf8Bytes(serializedEntities))
       .build();
   }
-
 
   public void validatePermissions(JsonElement committedEntities) throws Exception {
     JsonArray updatedEntities = committedEntities.getAsJsonObject().get("updatedEntities").getAsJsonArray();

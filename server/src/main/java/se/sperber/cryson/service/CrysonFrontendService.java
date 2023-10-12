@@ -121,10 +121,21 @@ public class CrysonFrontendService {
 
   @GET
   @Path("{entity_name}")
-  public Response getEntitiesByExample(@PathParam("entity_name") String entityName, @QueryParam("example") String exampleJson, @QueryParam("fetch") String rawAssociationsToFetch) {
+  public Response getEntitiesByExample(@PathParam("entity_name") String entityName, @QueryParam("example") String exampleJson, @QueryParam("fetch") String rawAssociationsToFetch, @QueryParam("exclude") String rawAssociationsToExclude) {
     try {
-      Set<String> associationsToFetch = splitAssociationsToFetch(rawAssociationsToFetch);
-      return crysonService.getEntitiesByExample(entityName, exampleJson, associationsToFetch);
+      Set<String> associations = splitAssociations(rawAssociationsToFetch);
+      //Current 'exclude' is always empty, because of the Cryson Client doesn't support other parameters
+      //Therefore use prefix '-' sign to indicate it should be excluded.
+      Set<String> associationsToFetch = new HashSet<>();
+      Set<String> associationsToExclude = new HashSet<>();
+      for (String association : associations) {
+        if (association.startsWith("-")) {
+          associationsToExclude.add(association.substring(1));
+        } else {
+          associationsToFetch.add(association);
+        }
+      }
+      return crysonService.getEntitiesByExample(entityName, exampleJson, associationsToFetch, associationsToExclude);
     } catch(Throwable t) {
       return translateThrowable(t);
     }
@@ -132,10 +143,21 @@ public class CrysonFrontendService {
 
   @GET
   @Path("{entity_name}/all")
-  public Response getAllEntities(@PathParam("entity_name") String entityName, @QueryParam("fetch") String rawAssociationsToFetch) {
+  public Response getAllEntities(@PathParam("entity_name") String entityName, @QueryParam("fetch") String rawAssociationsToFetch, @QueryParam("exclude") String rawAssociationsToExclude) {
     try {
-      Set<String> associationsToFetch = splitAssociationsToFetch(rawAssociationsToFetch);
-      return crysonService.getAllEntities(entityName, associationsToFetch);
+      Set<String> associations = splitAssociations(rawAssociationsToFetch);
+      //Current 'exclude' is always empty, because of the Cryson Client doesn't support other parameters
+      //Therefore use prefix '-' sign to indicate it should be excluded.
+      Set<String> associationsToFetch = new HashSet<>();
+      Set<String> associationsToExclude = new HashSet<>();
+      for (String association : associations) {
+        if (association.startsWith("-")) {
+          associationsToExclude.add(association.substring(1));
+        } else {
+          associationsToFetch.add(association);
+        }
+      }
+      return crysonService.getAllEntities(entityName, associationsToFetch, associationsToExclude);
     } catch(Throwable t) {
       return translateThrowable(t);
     }
@@ -143,12 +165,23 @@ public class CrysonFrontendService {
 
   @GET
   @Path("namedQuery/{query_name}")
-  public Response getEntitiesByNamedQuery(@PathParam("query_name") String queryName, @Context UriInfo uriInfo, @QueryParam("fetch") String rawAssociationsToFetch) {
+  public Response getEntitiesByNamedQuery(@PathParam("query_name") String queryName, @Context UriInfo uriInfo, @QueryParam("fetch") String rawAssociationsToFetch, @QueryParam("exclude") String rawAssociationsToExclude) {
     try {
-      Set<String> associationsToFetch = splitAssociationsToFetch(rawAssociationsToFetch);
+      Set<String> associations = splitAssociations(rawAssociationsToFetch);
+      //Current 'exclude' is always empty, because of the Cryson Client doesn't support other parameters
+      //Therefore use prefix '-' sign to indicate it should be excluded.
+      Set<String> associationsToFetch = new HashSet<>();
+      Set<String> associationsToExclude = new HashSet<>();
+      for (String association : associations) {
+        if (association.startsWith("-")) {
+          associationsToExclude.add(association.substring(1));
+        } else {
+          associationsToFetch.add(association);
+        }
+      }
       MultivaluedMap<String,String> queryParameters = uriInfo.getQueryParameters();
       queryParameters.remove("fetch");
-      return crysonService.getEntitiesByNamedQuery(queryName, queryParameters, associationsToFetch);
+      return crysonService.getEntitiesByNamedQuery(queryName, queryParameters, associationsToFetch, associationsToExclude);
     } catch(Throwable t) {
       return translateThrowable(t);
     }
@@ -156,11 +189,22 @@ public class CrysonFrontendService {
 
   @POST
   @Path("namedQuery/{query_name}")
-  public Response getEntitiesByNamedQueryPost(@PathParam("query_name") String queryName, @Context UriInfo uriInfo, @QueryParam("fetch") String rawAssociationsToFetch, String json) {
+  public Response getEntitiesByNamedQueryPost(@PathParam("query_name") String queryName, @Context UriInfo uriInfo, @QueryParam("fetch") String rawAssociationsToFetch, @QueryParam("exclude") String rawAssociationsToExclude, String json) {
     try {
       JsonElement parameters = crysonSerializer.parse(json);
-      Set<String> associationsToFetch = splitAssociationsToFetch(rawAssociationsToFetch);
-      return crysonService.getEntitiesByNamedQueryJson(queryName, associationsToFetch, parameters);
+      Set<String> associations = splitAssociations(rawAssociationsToFetch);
+      //Current 'exclude' is always empty, because of the Cryson Client doesn't support other parameters
+      //Therefore use prefix '-' sign to indicate it should be excluded.
+      Set<String> associationsToFetch = new HashSet<>();
+      Set<String> associationsToExclude = new HashSet<>();
+      for (String association : associations) {
+        if (association.startsWith("-")) {
+          associationsToExclude.add(association.substring(1));
+        } else {
+          associationsToFetch.add(association);
+        }
+      }
+      return crysonService.getEntitiesByNamedQueryJson(queryName, associationsToFetch, associationsToExclude, parameters);
     } catch(Throwable t) {
       return translateThrowable(t);
     }
@@ -201,7 +245,7 @@ public class CrysonFrontendService {
       return translateThrowable(t);
     }
   }
-  
+
   public Response commitEntity(Object entity, UriInfo uriInfo, HttpHeaders httpHeaders) {
     try {
       ListenerNotificationBatch listenerNotificationBatch = new ListenerNotificationBatch(uriInfo, httpHeaders);
@@ -253,16 +297,27 @@ public class CrysonFrontendService {
     return crysonSerializer.serializeWithoutAugmentation(messageObject);
   }
 
-  private Set<String> splitAssociationsToFetch(String rawAssociationsToFetch) {
-    if (rawAssociationsToFetch == null || rawAssociationsToFetch.equals("")) {
+  private Set<String> splitAssociations(String rawAssociations) {
+    if (rawAssociations == null || rawAssociations.equals("")) {
       return Collections.emptySet();
     }
 
-    return new HashSet<String>(Arrays.asList(rawAssociationsToFetch.split(",")));
+    return new HashSet<String>(Arrays.asList(rawAssociations.split(",")));
   }
 
   private Response getEntitiesById(String entityName, String rawStringIds, String rawAssociationsToFetch) {
-    Set<String> associationsToFetch = splitAssociationsToFetch(rawAssociationsToFetch);
+    Set<String> associations = splitAssociations(rawAssociationsToFetch);
+    //Current 'exclude' is always empty, because of the Cryson Client doesn't support other parameters
+    //Therefore use prefix '-' sign to indicate it should be excluded.
+    Set<String> associationsToFetch = new HashSet<>();
+    Set<String> associationsToExclude = new HashSet<>();
+    for (String association : associations) {
+      if (association.startsWith("-")) {
+        associationsToExclude.add(association.substring(1));
+      } else {
+        associationsToFetch.add(association);
+      }
+    }
     String[] stringIds = rawStringIds.split(",");
 
     if(stringIds.length <= 1) {
@@ -272,7 +327,7 @@ public class CrysonFrontendService {
     for(String stringId : stringIds) {
       entityIds.add(Long.parseLong(stringId));
     }
-    return crysonService.getEntitiesByIds(entityName, entityIds, associationsToFetch);
+    return crysonService.getEntitiesByIds(entityName, entityIds, associationsToFetch, associationsToExclude);
   }
 
 }

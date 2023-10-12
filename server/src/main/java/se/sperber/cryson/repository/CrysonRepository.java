@@ -221,6 +221,14 @@ public class CrysonRepository {
     return criteria.uniqueResult();
   }
 
+  public List<Object[]> findByNativeQuery(String query, Set<Long> objectIds) {
+    final org.hibernate.query.Query nativeQuery = sessionFactory.getCurrentSession()
+      .createSQLQuery(query);
+      nativeQuery.setParameterList(0, objectIds);
+    final List<Object[]> queryResultList = nativeQuery.getResultList();
+    return queryResultList;
+  }
+
   private void throwConstraintViolations(Set<ConstraintViolation<Object>> constraintViolations) {
     if (constraintViolations.size() > 0) {
       StringBuilder violationMessages = new StringBuilder();
@@ -235,7 +243,7 @@ public class CrysonRepository {
 
   private void setFetchModeForAssociations(Criteria criteria, Set<String> associationsToFetch) {
     for(String associationToFetch : associationsToFetch) {
-      criteria.setFetchMode(associationToFetch, FetchMode.DEFAULT);
+      criteria.setFetchMode(associationToFetch, FetchMode.JOIN);
     }
   }
 
