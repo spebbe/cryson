@@ -171,9 +171,9 @@ public class CrysonSerializer {
           }
         }
 
-        augmentJsonElementWithUserTypeFields(rawObject, jsonElement);
-        augmentJsonElementWithTransientGetters(rawObject, jsonElement, associationsToExclude);
-        augmentJsonElementWithLazyFields(rawObject, jsonElement, associationsToInclude, associationsToExclude, lazyFieldsValues);
+        augmentJsonElementWithUserTypeFields(object, jsonElement);
+        augmentJsonElementWithTransientGetters(object, jsonElement, associationsToExclude);
+        augmentJsonElementWithLazyFields(object, jsonElement, associationsToInclude, associationsToExclude, lazyFieldsValues);
       }
     } catch (Throwable t) {
       throw new RuntimeException(t);
